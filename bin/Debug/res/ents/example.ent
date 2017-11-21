@@ -1,0 +1,10 @@
+Name Hero
+Attributes 63
+|Component|ID|Individual attributes|
+Component 0 100.0 100.0 1
+Component 1 ents/Hero.ent
+Component 2 0
+Component 3 700 700 700 1 1 1 1 1
+Component 4 0
+Component 5 32 32 2 2 0
+
