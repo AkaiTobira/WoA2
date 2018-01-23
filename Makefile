@@ -26,7 +26,7 @@ DEPS := $(OBJ:.o=.d)
 
 #####################################################################
 #Compilation Flag
-DEB   = -Wall -Wextra -pedantic
+DEB   = -Wall -Wextra -pedantic -Werror
 DGB   = -g -da 
 LCK   = -MMD -c 
 COM   = $(CXX) $(DEB) $(C14) $(LCK)

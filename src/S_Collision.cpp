@@ -401,7 +401,7 @@ void S_Collision::EntityCollisions(){
 
                             if( position->isChanging() and position2->isChanging() ){
  
-                                /*
+                                
 
                                 if( position->IsPaused() ){
                                     position2->Pause();

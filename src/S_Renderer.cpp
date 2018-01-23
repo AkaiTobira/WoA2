@@ -97,7 +97,7 @@ void S_Renderer::Render(Window* l_wind, unsigned int l_layer){
             sf::Text nmbr;
             nmbr.setFont(m_font);
             nmbr.setString(std::to_string(entity));
-            nmbr.setColor(sf::Color::White);
+            nmbr.setFillColor(sf::Color::White);
             nmbr.setCharacterSize(12);
             nmbr.setPosition( position->GetFPosition().x , position->GetFPosition().y  );
        

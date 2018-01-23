@@ -13,7 +13,7 @@ S_Control::S_Control(SystemManager* l_systemMgr)
 
 
 
-void S_Control::MoveEntity(const EntityId& l_entity,const Direction& l_dir){
+void S_Control::MoveEntity(const EntityId& l_entity __attribute((unused)),const Direction& l_dir __attribute((unused))){
 
 
   //  mov->Move(l_dir);
@@ -208,7 +208,7 @@ unsigned int S_Control::IsActive( const EntityId& l_entity){
         return false;
 }
 
-void S_Control::HandleEvent(const EntityId& l_entity,const EntityEvent& l_event)
+void S_Control::HandleEvent(const EntityId& l_entity __attribute((unused)),const EntityEvent& l_event __attribute((unused)))
 { 
 
     //OBSTAWIAM ZE TO BEDE EDYTOWAC
@@ -269,13 +269,13 @@ void S_Control::HandleEvent(
         switch(l_events){
             case EntityEvent::Colliding_Move:
             {
-                EntityManager* entities = m_systemManager->GetEntityManager();
+             //   EntityManager* entities = m_systemManager->GetEntityManager();
 
                 for( auto reciver : participians){
                     C_Controller* contr = m_systemManager->GetEntityManager()->GetComponent< C_Controller>(reciver, Component::Controller);
                     if( contr->IsUnit() ){
 
-                            std::cout << reciver << " " << std::endl; 
+              //              std::cout << reciver << " " << std::endl; 
 
                             m_systemManager->GetSystem<S_Movement>(System::Movement)->CallAStarAgain(reciver);
 

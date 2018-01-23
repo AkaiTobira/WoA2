@@ -3,6 +3,7 @@
 #include "State_Game.h"
 #include "State_Loading.h"
 #include "State_MainMenu.h"
+#include "State_Paused.h"
 
 
 StateManager::StateManager(SharedContext* l_shared)
@@ -12,7 +13,7 @@ StateManager::StateManager(SharedContext* l_shared)
      RegisterState<State_MainMenu>(StateType::MainMenu);
      RegisterState<State_Game>(StateType::Game);
      RegisterState<State_Loading>(StateType::Loading);
-    //  RegisterState<State_Paused>(StateType::Pause);
+     RegisterState<State_Paused>(StateType::Pause);
     //  RegisterState<State_Options>(StateType::Options);
     #ifdef DEBUGG_RUN
     std::cout << "StateManager :: REGISTERED_STATES :: " << m_stateFactory.size() <<  std:: endl;

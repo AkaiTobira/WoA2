@@ -79,11 +79,10 @@ void S_Base::Purge()
 
 
 EntityList SystemManager::GetList(){
-   // CheckEntityLists();
     for( auto &system : m_systems){
         return system.second->GiveList();
     }
-
+    return EntityList();
 }
 
 
