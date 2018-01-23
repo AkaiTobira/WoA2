@@ -4,6 +4,7 @@
 #include "StateManager.h"
 #include "Map.h"
 #include <SFML/Graphics.hpp>
+#include <algorithm>
 
 class State_Game : public BaseState{
     public:
@@ -29,12 +30,16 @@ class State_Game : public BaseState{
        // sf::Texture m_introTexture;
        // sf::Sprite m_introSprite;
        float MOVE_SPEED;
-       
+        void Print( EventDetails* l_details);
         void Reinforcment(EventDetails* l_details);
-        void MoveCamera (EventDetails* l_details);
-        void StopEntity (EventDetails* l_details);
-        void MoveEntity (EventDetails* l_details);
-        void SpawnEntity(EventDetails* l_details);
+        void MoveCamera  (EventDetails* l_details);
+        void StopEntity  (EventDetails* l_details);
+        void MoveEntity  (EventDetails* l_details);
+        void SpawnEntity (EventDetails* l_details);
+        void SpawnHorse  (EventDetails* l_details);
+        void ChoseAll    (EventDetails* l_details);
+        void Test        (EventDetails* l_details);
+        void KillEntity  (EventDetails* l_details);
 
         sf::Texture m_texture;
         sf::Sprite m_spite;
@@ -63,8 +68,6 @@ class State_Game : public BaseState{
 
         sf::Vector2f m_posDown;
         sf::Vector2f m_posRelease;
-        //const sf::Input &input;
-        //float m_timePassed;
 };
 
 #endif

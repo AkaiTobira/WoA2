@@ -1,65 +1,59 @@
-TH=-pthread
-COM=g++ -g -c -Wall -Wextra -pedantic
-C14=-std=c++14
-ADDSFML=-lsfml-graphics -lsfml-audio -lsfml-window -lsfml-system
-ERROR=2> errors.txt
+####################################################################
+#Directories
+SRCD =src/
+OBJD =obj/
+HDRS =include
+OSRC =bin/Debug/
 
-NAME_D=-o sfml-app
-RUN_D=gdb -ex run ./bin/Debug/sfml-app
+####################################################################
+#Libraries
+WOA  = WoA
+SFML =-lsfml-graphics -lsfml-audio -lsfml-window -lsfml-system
+C14 = -std=c++14
+OMP = -fopenmp
 
-HDRS=include
-SRC=src/
-OSRC=obj/Debug/src/
+####################################################################
+#Output
+ER=2> errors.txt
+NAME_D=-o $(OSRC)sfml-app
 
-connect:
-	mv *.o $(OSRC)
-	g++ $(OSRC)*.o -o3 $(NAME_D) $(ADDSFML) $(TH)
+#####################################################################
+#Reading Files
+SRC  = $(wildcard $(SRCD)*.cpp)
+OBJ  = $(SRC:$(SRCD)%.cpp=$(OBJD)%.o)
+OBJL = $(SRC:$(SRCD)%.cpp=%.o)
+DEPS := $(OBJ:.o=.d)
 
-rebuild: compile connect
-	mv sfml-app bin/Debug/
+#####################################################################
+#Compilation Flag
+DEB   = -Wall -Wextra -pedantic
+DGB   = -g -da 
+LCK   = -MMD -c 
+COM   = $(CXX) $(DEB) $(C14) $(LCK)
+BUILD = $(CXX) $(DGB) $(OBJ) $(OPT) $(OMP)
+OPT   = -o3
 
-build: rebuild run
-
-run:
-	$(RUN_D)
-	
-compile: current systems cores managers states adds
-
-current:
-	$(COM) $(C14) -I$(HDRS) $(SRC)S_Movement.cpp $(ERROR)
-
-systems:
-	$(COM) $(C14) -I$(HDRS) $(SRC)S_Renderer.cpp $(ERROR)	
-	$(COM) $(C14) -I$(HDRS) $(SRC)S_State.cpp $(ERROR)
-	$(COM) $(C14) -I$(HDRS) $(SRC)S_Control.cpp $(ERROR)
-	$(COM) $(C14) -I$(HDRS) $(SRC)S_SheetAnimation.cpp $(ERROR)
-	$(COM) $(C14) -I$(HDRS) $(SRC)S_Collision.cpp $(ERROR)
-
-cores:
-	$(COM) $(C14) -I$(HDRS) $(SRC)Map.cpp $(ERROR)
-	$(COM) $(C14) -I$(HDRS) $(SRC)Game.cpp $(ERROR)
-	$(COM) $(C14) -I$(HDRS) $(SRC)Window.cpp $(ERROR)
-	$(COM) $(C14) -I$(HDRS) $(SRC)main.cpp $(ERROR)
-
-managers:
-	$(COM) $(C14) -I$(HDRS) $(SRC)EntityManager.cpp $(ERROR)
-	$(COM) $(C14) -I$(HDRS) $(SRC)SystemManager.cpp $(ERROR)
-	$(COM) $(C14) -I$(HDRS) $(SRC)EventManager.cpp $(ERROR)
-	$(COM) $(C14) -I$(HDRS) $(SRC)ResourceManager.cpp $(ERROR)
-	$(COM) $(C14) -I$(HDRS) $(SRC)StateManager.cpp $(ERROR)
-
-states:
-	$(COM) $(C14) -I$(HDRS) $(SRC)State_Loading.cpp $(ERROR)
-	$(COM) $(C14) -I$(HDRS) $(SRC)State_Game.cpp $(ERROR)
-	$(COM) $(C14) -I$(HDRS) $(SRC)State_MainMenu.cpp $(ERROR)
-	$(COM) $(C14) -I$(HDRS) $(SRC)State_Intro.cpp $(ERROR)
+CDB   = $(CXX) $(DGB) $(DEB) $(C14) $(LCK)
 
 
-adds:
-	$(COM) $(C14) -I$(HDRS) $(SRC)FPSrate.cpp $(ERROR)	
+#####################################################################
+#!/bin/bash
+-include $(DEPS)
 
-NOUSEFULL:
-	$ gdb program-cmd
-	(gdb) run
-	(gdb) backtrace
-	gdb -ex run --args ./a.out arg1 arg2 ...
+all: $(WOA)
+	@echo Completed : EXIT
+	make sfml-app
+
+$(WOA): $(OBJ)
+	 $(BUILD) $(NAME_D) $(SFML)
+
+obj/%.o: src/%.cpp
+#	rm -f $(OBJD)%.d
+	$(COM) $(OMP) -I$(HDRS)  -o  $@   $< $(ER)
+
+sfml-app: 
+	gdb -ex run ./bin/Debug/sfml-app
+
+.PHONY: clean
+clean:
+	rm -f $(OBJ) $(DEPS) bin/Debug/sfml-app

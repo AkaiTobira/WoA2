@@ -20,10 +20,44 @@ S_Movement::S_Movement(SystemManager* l_systemMgr)
     #endif
 }
 
+bool S_Movement::RemoveEntity(const EntityId& l_entity){
+
+    StopEntity(l_entity);
+    EntityManager* entities = m_systemManager->GetEntityManager();
+    C_Position* position = entities->GetComponent<C_Position>(l_entity, Component::Position);
+    m_gameMap->UnBlockTile( position->GetBlockTile().x, position->GetBlockTile().y);
+    m_gameMap->UnBlockTile( position->GetBlockTileOld().x, position->GetBlockTileOld().y);
+
+
+    C_Movable* movable = entities->GetComponent<C_Movable>(l_entity, Component::Movable);
+
+
+    toRelease.push_back(movable->GetCurrentReservation());
+    toRelease.push_back(movable->GetPrevReservation());
+    toRelease.push_back(position->GetUPosition() );
+    toRelease.push_back(position->GetBlockTileOld() );
+
+
+    for( auto it = m_entities.begin(); it != m_entities.end(); it++){
+        if( l_entity == *it ){
+            m_entities.erase(it);
+            return true;
+        }
+    }
+    return false;
+
+}
+
 S_Movement::~S_Movement(){
     #ifdef DEBUGG_RUN
     std::cout << "S_MOVEMENT :: DESTRUCTOR" << std::endl;
     #endif
+
+
+    for( unsigned int i = 0; i<m_mapSize.x; i++ ){
+        delete [] m_ReservedTiles[i];
+    }
+    delete [] m_ReservedTiles;
 
     m_gameMap = nullptr;
 
@@ -32,7 +66,146 @@ S_Movement::~S_Movement(){
     #endif
 }
 
+
+void S_Movement::ReserveTile(C_Position* position, C_Movable* movable){
+    sf::Vector2u pos     = position->GetUPosition();
+
+    sf::Vector2u Nextpos = { 
+      0,
+      0
+    };
+
+    const float MINUS = 0.001;
+
+    switch(movable->GetDirection()){
+        case Direction::Left:
+            pos     = { 
+                static_cast<unsigned int>((position->GetFPosition().x - Tile_Size/2)/Tile_Size), 
+                static_cast<unsigned int>((position->GetFPosition().y)/Tile_Size)
+            };
+
+            Nextpos = { 
+                static_cast<unsigned int>((position->GetFPosition().x - Tile_Size/2 + movable->GetVelocity().x)/Tile_Size), 
+                static_cast<unsigned int>((position->GetFPosition().y + movable->GetVelocity().y)/Tile_Size)
+            };
+
+        break;
+        case Direction::Right:
+            pos     = { 
+                static_cast<unsigned int>((position->GetFPosition().x -MINUS  + Tile_Size/2)/Tile_Size), 
+                static_cast<unsigned int>((position->GetFPosition().y)/Tile_Size)
+            };
+
+
+            Nextpos = { 
+                static_cast<unsigned int>((position->GetFPosition().x -MINUS + Tile_Size/2 + movable->GetVelocity().x)/Tile_Size), 
+                static_cast<unsigned int>((position->GetFPosition().y + movable->GetVelocity().y)/Tile_Size)
+            };
+
+        break;
+        case Direction::LeftDown:
+            pos     = { 
+                static_cast<unsigned int>((position->GetFPosition().x - Tile_Size/2)/Tile_Size), 
+                static_cast<unsigned int>((position->GetFPosition().y + Tile_Size/2)/Tile_Size)
+            };
+
+            Nextpos = { 
+                 static_cast<unsigned int>((position->GetFPosition().x - Tile_Size/2 + movable->GetVelocity().x)/Tile_Size), 
+                 static_cast<unsigned int>((position->GetFPosition().y + Tile_Size/2 + movable->GetVelocity().y)/Tile_Size)
+            };
+        break;
+        case Direction::LeftUp:
+            pos     = { 
+                static_cast<unsigned int>((position->GetFPosition().x - Tile_Size/2)/Tile_Size), 
+                static_cast<unsigned int>((position->GetFPosition().y - Tile_Size/2)/Tile_Size)
+            };
+
+            Nextpos = { 
+                static_cast<unsigned int>((position->GetFPosition().x - Tile_Size/2 + movable->GetVelocity().x)/Tile_Size), 
+                static_cast<unsigned int>((position->GetFPosition().y - Tile_Size/2 + movable->GetVelocity().y)/Tile_Size)
+            };
+        break;
+        case Direction::RightDown:
+            pos     = { 
+                static_cast<unsigned int>((position->GetFPosition().x -MINUS  + Tile_Size/2 )/Tile_Size), 
+                static_cast<unsigned int>((position->GetFPosition().y -MINUS  + Tile_Size/2 )/Tile_Size)
+            };
+
+            Nextpos = { 
+                static_cast<unsigned int>((position->GetFPosition().x -MINUS  + Tile_Size/2 + movable->GetVelocity().x)/Tile_Size), 
+                static_cast<unsigned int>((position->GetFPosition().y -MINUS  + Tile_Size/2 + movable->GetVelocity().y)/Tile_Size)
+            };
+        break;
+        case Direction::RightUp:
+            pos     = { 
+                static_cast<unsigned int>((position->GetFPosition().x -MINUS + Tile_Size/2)/Tile_Size), 
+                static_cast<unsigned int>((position->GetFPosition().y - Tile_Size/2)/Tile_Size)
+            };
+
+            Nextpos = { 
+                static_cast<unsigned int>((position->GetFPosition().x -MINUS + Tile_Size/2 + movable->GetVelocity().x)/Tile_Size), 
+                static_cast<unsigned int>((position->GetFPosition().y - Tile_Size/2 + movable->GetVelocity().y)/Tile_Size)
+            };
+        break;
+        case Direction::Up:
+            pos     = { 
+                static_cast<unsigned int>((position->GetFPosition().x)/Tile_Size),
+                static_cast<unsigned int>((position->GetFPosition().y - Tile_Size/2)/Tile_Size)
+            };
+
+            Nextpos = { 
+                static_cast<unsigned int>((position->GetFPosition().x + movable->GetVelocity().x)/Tile_Size), 
+                static_cast<unsigned int>((position->GetFPosition().y - Tile_Size/2 + movable->GetVelocity().y)/Tile_Size)
+            };
+        break;
+        case Direction::Down:
+            pos     = { 
+                static_cast<unsigned int>((position->GetFPosition().x)/Tile_Size),
+                static_cast<unsigned int>((position->GetFPosition().y -MINUS  + Tile_Size/2)/Tile_Size)
+            };
+
+            Nextpos = { 
+                static_cast<unsigned int>((position->GetFPosition().x + movable->GetVelocity().x)/Tile_Size), 
+                static_cast<unsigned int>((position->GetFPosition().y -MINUS  + Tile_Size/2 + movable->GetVelocity().y)/Tile_Size)
+            };
+        break;
+        default:
+            return;
+        break;
+
+
+    }
+
+    if( pos.x == Nextpos.x and pos.y == Nextpos.y ) {
+        return;
+        }
+ 
+    if( m_ReservedTiles[Nextpos.x][Nextpos.y] or !m_gameMap->IsWalkable(Nextpos.x, Nextpos.y) ) {
+         position->Pause(); 
+         return;
+        }
+
+    if( m_gameMap->IsWalkable(Nextpos.x, Nextpos.y)){
+
+        movable->SetCurrentReservation( Nextpos );
+        m_ReservedTiles[pos.x][pos.y] = false;
+        m_ReservedTiles[Nextpos.x][Nextpos.y] = true;
+
+        for( auto itr = toRelease.begin(); itr != toRelease.end();){
+            if( Nextpos == *itr ){ 
+                itr = toRelease.erase(itr);
+            }else if ( pos == *itr){
+                itr = toRelease.erase(itr);
+            }else{
+                ++itr;
+            }
+        }
+    }
+}
+
 void S_Movement::Update(float l_dT){
+   
+ 
     #ifdef DEBUGG_RUN
         std::cout << "S_MOVEMENT :: UPDATE :: BEGIN" << std::endl;
     #endif
@@ -42,122 +215,94 @@ void S_Movement::Update(float l_dT){
     #endif
 
     if (!m_gameMap){ return; }
+    
+     for(unsigned int i = 0; i < toRelease.size(); i++){
+         m_ReservedTiles[toRelease[i].x][toRelease[i].y] = false;
+     }
+
+     toRelease.clear();
+
     EntityManager* entities = m_systemManager->GetEntityManager();
 
-
-    std::set<unsigned int> m_leftWalkers;
-    std::set<unsigned int> m_rightWalkers;
-    std::set<unsigned int> m_upWalkers;
-    std::set<unsigned int> m_downWalkers;
-    std::set<unsigned int> m_walkers;
-
+    std::set<unsigned int> m_walking[(int)Direction::ENDMARK];
 
     for(auto &entity : m_entities){
         
         C_Position* position = entities->GetComponent<C_Position>(entity, Component::Position);
-        if( position->GetTargetPosition() == position->GetPosition()){
-            continue;
-        }
-        
-        #ifdef SDR_RUN
-            std::cout << "Entity " << entity << " :: Position :: "<< position->GetPosition().x<< " "<< position->GetPosition().y << std::endl;
-        #endif
 
+
+        
         C_Movable* movable = entities->GetComponent<C_Movable>(entity, Component::Movable);
+        
+        #ifdef SDR_RUN
+            std::cout << "Entity " << entity << " :: Position :: "<< position->GetFPosition().x<< " "<< position->GetFPosition().y << std::endl;
+        #endif
 
-        MovementStep(l_dT, movable, position);
-        CalculatePath(position, movable);  
 
         #ifdef SDR_RUN
             std::cout << "Entity " << entity << " :: MoveBy :: "<< movable->GetVelocity().x<< " "<< movable->GetVelocity().y << std::endl;
         #endif
         
-        bool CloseX = std::abs( position->GetTargetPosition().x -  position->GetPosition().x ) <= movable->GetSpeed().x* l_dT;
-        bool CloseY = std::abs( position->GetTargetPosition().y -  position->GetPosition().y ) <= movable->GetSpeed().y* l_dT;
-
-     //   if( position->GetTargetPosition().x != position->GetPosition().x){
-        if( CloseX ){
-           StopEntity(entity, Axis::x);
-           position->SetPosition(position->GetTargetPosition().x, position->GetPosition().y);
+        if( movable->isWalking() ){
            
-        }
-            
-        if( CloseY ){
-            StopEntity(entity, Axis::y);
-            position->SetPosition(position->GetPosition().x,position->GetTargetPosition().y);
-            
-        }
+            CheckDirection( position, movable, entity);  
+            MovementStep  ( position, movable, l_dT  );
+            ReserveTile   ( position, movable        );          
 
-         if(CloseX and CloseY){
+            if( position->IsPaused() ){ 
+                position->Play() ; 
+                continue;
+            }
 
-            position->SetPosition( position->GetTargetPosition() );
-            StopEntity(entity);
+             Direction temp = movable->GetDirection();
 
-            m_systemManager->AddEvent(
-                entity,
-                (EventID)EntityEvent::Became_Idle);
-            
-        
-        
+            if(  temp <= Direction::None  or  temp >= Direction::ENDMARK ){ 
+                continue; 
+            }else{
+                m_walking[(unsigned int)temp].insert(entity);
+            }        
 
-        }else{
-            position->MoveBy(movable->GetVelocity());
-        }
+            position->MoveBy(movable->GetVelocity());   
 
 
-        #ifdef SDR_RUN
-            std::cout << "Entity "
-             << entity << " :: STEP BY  :: "
-             << movable->GetVelocity().x << " "
-             << movable->GetVelocity().y << std::endl;
-        #endif
-    
-
-        if( (movable->GetVelocity().x != 0) 
-            and 
-            (movable->GetVelocity().y != 0)
-         ){
-        if( movable->GetDirection() == Direction::Left ){
-        //    movable->SetDirection(Direction::Left);
-            m_leftWalkers.insert(entity);
-        }else if( movable->GetDirection() == Direction::Right ) {
-        //    movable->SetDirection(Direction::Right);
-            m_rightWalkers.insert(entity);
-        }else if( movable->GetDirection() == Direction::Up ){
-          //      movable->SetDirection(Direction::Down);
-                m_downWalkers.insert(entity);
-        }else if( movable->GetDirection() == Direction::Down ){
-            //    movable->SetDirection(Direction::Up);
-                m_upWalkers.insert(entity);
+            if( position->BlockChanged() ){
+                m_gameMap->BlockTile  (    position->GetBlockTile().x,    position->GetBlockTile().y); 
+                m_gameMap->UnBlockTile( position->GetBlockTileOld().x, position->GetBlockTileOld().y);
+            }
         }
 
-            
-    }
-        m_walkers.insert(entity);
-            
+
+
+
         #ifdef SDR_RUN
             std::cout << "Entity " << entity << " :: MoveBy :: "<< movable->GetVelocity().x<< " "<< movable->GetVelocity().y << std::endl;
         #endif
-
     }
 
+    for( int i = 1; i < (int)Direction::ENDMARK ; i++ ){
+        if( m_walking[i].size() )
+            SendMessage( EntityMessage::Direction_Changed, i, m_walking[i]);
+    }
+  //  std::cout << "S_MOVEMENT :: UPDATE :: END" << std::endl;
+
+  //  for( unsigned int i = 0; i < m_mapSize.x; i++){
+  //      for( unsigned int j =0; j< m_mapSize.y; j++){
+   //        std::cout << !m_gameMap->IsWalkable(j,i) or m_ReservedTiles[j][i];
+    //       m_ReservedTiles[j][i] = false;
+  //  }
+  //      std::cout << std::endl;
+  //  }
+   // std::cout << std::endl;
 
 
-    if( m_leftWalkers.size()  ) SendMessage(EntityMessage::Direction_Changed, (int)Direction::Left,  m_leftWalkers);
-    if( m_rightWalkers.size() ) SendMessage(EntityMessage::Direction_Changed, (int)Direction::Right, m_rightWalkers);
-    if( m_upWalkers.size()    ) SendMessage(EntityMessage::Direction_Changed, (int)Direction::Up,    m_upWalkers);
-    if( m_downWalkers.size()  ) SendMessage(EntityMessage::Direction_Changed, (int)Direction::Down,  m_downWalkers);
-   // if( m_walkers.size()      ) SendMessage(EntityMessage::Is_Moving, -1 ,m_walkers);
+
 
 }
 
 void S_Movement::Notify(const Message& l_message){
-    
         #ifdef DEBUGG_RUN
             std::cout << "S_MOVEMENT :: NOTIFY :: BEGIN" << std::endl;
         #endif
-    
-      
     
             EntityManager* eMgr = m_systemManager->GetEntityManager();
             EntityMessage m = (EntityMessage)l_message.m_type;
@@ -167,74 +312,134 @@ void S_Movement::Notify(const Message& l_message){
                     if (!HasEntity(reciver)){ continue; }
                     
                     C_Movable* movable = eMgr->GetComponent<C_Movable>(reciver, Component::Movable);
-                    if (movable->GetVelocity() != sf::Vector2f(0.0f, 0.0f)){ continue; }
-
+                    if (movable->isWalking()){ continue; }
                         m_systemManager->AddEvent(
                             reciver,
-                            (EventID)EntityEvent::Became_Idle);
-                        }
-                break;
+                            (EventID)EntityEvent::Became_Idle
+                        );
+                    }
+                break; 
                 default:
                 break;
-            
-        
         }
         #ifdef DEBUGG_RUN
             std::cout << "S_MOVEMENT :: NOTIFY :: DONE" << std::endl;
         #endif
 }
 
-void S_Movement::CalculatePath(C_Position* position, C_Movable* movable){
-    sf::Vector2f tartget = position->GetTargetPosition();
-    sf::Vector2f now     = position->GetPosition();
-
-    if( position->flag ){
-
-    if( tartget.x <= now.x ){
-        movable->SetDirection(Direction::Left);
-        movable->Move(Direction::Left);
-    }else{
-        movable->SetDirection(Direction::Up);
-        movable->Move(Direction::Right);
-    }
-    position->flag = false;
-    }else{
-
-    if( tartget.y <= now.y){
-        movable->SetDirection(Direction::Up);
-        movable->Move(Direction::Up);
-        
-    }else{
-        movable->SetDirection(Direction::Down);
-        movable->Move(Direction::Down);
-        
-    }
-    position->flag = true;
-    }
-}
-
-void S_Movement::HandleEvent(const std::set<unsigned int>& participians __attribute((unused)), const EntityEvent& l_event){
+void S_Movement::HandleEvent(const std::set<unsigned int>& participians , const EntityEvent& l_event){
     #ifdef DEBUGG_RUN
         std::cout << "S_MOVEMENT :: HANDLEEVENT :: START" << std::endl;
     #endif
 
+    C_Movable* movable;
+
     switch(l_event){
-        case EntityEvent::Colliding_X:
-            for( auto entity : participians )
-                StopEntity(entity,Axis::x); 
+        case EntityEvent::Colliding_Left:
+        {
+            for( auto l_entity : participians ){
+                movable = m_systemManager->GetEntityManager()->GetComponent<C_Movable>(l_entity,Component::Movable);
+                switch(movable->GetDirection()){
+                    case Direction::LeftUp:
+                    StopEntity(l_entity,Axis::x); 
+                        break;
+                    case Direction::LeftDown:
+                    StopEntity(l_entity,Axis::x); 
+                        break;
+                    case Direction::Left:
+                    StopEntity(l_entity,Axis::x); 
+                        break;
+                    default:
+                    break;
+                }
+            }
+        }
+                
+            break;
+        case EntityEvent::Colliding_Up:
+        { 
+            for( auto l_entity : participians ){    
+                movable = m_systemManager->GetEntityManager()->GetComponent<C_Movable>(l_entity,Component::Movable);
+                
+                switch(movable->GetDirection()){
+                    case Direction::LeftUp:
+                    StopEntity(l_entity,Axis::y); 
+                        break;
+                    case Direction::Up:
+                    StopEntity(l_entity,Axis::y); 
+                        break;
+                    case Direction::RightUp:
+                    StopEntity(l_entity,Axis::y); 
+                        break;
+                        default:
+                    break;
+                }
+            }
+        }   
             break;
 
-        case EntityEvent::Colliding_Y:
-            for( auto entity : participians )
-                StopEntity(entity, Axis::y); 
+        case EntityEvent::Colliding_Down:
+        { 
+            for( auto l_entity : participians ){
+                movable = m_systemManager->GetEntityManager()->GetComponent<C_Movable>(l_entity,Component::Movable);
+                switch(movable->GetDirection()){
+                    case Direction::Down:
+                    StopEntity(l_entity,Axis::y); 
+                        break;
+                    case Direction::LeftDown:
+                    StopEntity(l_entity,Axis::y); 
+                        break;
+                    case Direction::RightDown:
+                    StopEntity(l_entity,Axis::y); 
+                        break;
+                        default:
+                    break;
+                } 
+            }  
+        }
             break;
+
+        case EntityEvent::Colliding_Right:
+        { 
+        for( auto l_entity : participians ){
+            movable = m_systemManager->GetEntityManager()->GetComponent<C_Movable>(l_entity,Component::Movable);
+                    switch(movable->GetDirection()){
+                case Direction::RightUp:
+                StopEntity(l_entity,Axis::x); 
+                    break;
+                case Direction::RightDown:
+            StopEntity(l_entity,Axis::x); 
+                    break;
+                case Direction::Right:
+            StopEntity(l_entity,Axis::x); 
+                    break;
+                    default:
+                break;
+                }
+            }
+        }   
+        break;
 
         case EntityEvent::Moving_Left:
-                SetDirection(participians, Direction::Left); 
+            SetDirection(participians, Direction::Left); 
             break;
 
         case EntityEvent::Moving_Right:
-                SetDirection(participians, Direction::Right); 
+            SetDirection(participians, Direction::Right); 
+            break;
+
+        case EntityEvent::Moving_LeftDown:
+            SetDirection(participians, Direction::LeftDown); 
+            break;
+
+        case EntityEvent::Moving_LeftUp:
+            SetDirection(participians, Direction::LeftUp); 
+            break;
+        case EntityEvent::Moving_RightDown:
+            SetDirection(participians, Direction::RightDown); 
+            break;
+        case EntityEvent::Moving_RightUp:
+            SetDirection(participians, Direction::RightUp); 
             break;
 
         case EntityEvent::Moving_Up:
@@ -246,7 +451,7 @@ void S_Movement::HandleEvent(const std::set<unsigned int>& participians __attrib
                     temp.insert(l_entity);
                 }
             }
-            if( temp.size()) SetDirection(temp, Direction::Up);            
+            if( temp.size() ) SetDirection(temp, Direction::Up);            
         }
         break;
         case EntityEvent::Moving_Down:
@@ -261,6 +466,16 @@ void S_Movement::HandleEvent(const std::set<unsigned int>& participians __attrib
             if( temp.size()) SetDirection(temp, Direction::Down);
         }
         break;
+
+
+        case EntityEvent::ForceStop:
+        {
+        for( auto l_entity : participians ){
+            movable = m_systemManager->GetEntityManager()->GetComponent<C_Movable>(l_entity,Component::Movable);
+            StopEntity(l_entity);
+            }
+        }
+
         default:
         break;
     }
@@ -270,56 +485,117 @@ void S_Movement::HandleEvent(const std::set<unsigned int>& participians __attrib
     #endif
 }
 
+bool S_Movement::onPosition( const sf::Vector2u& l_where, const sf::Vector2f& l_isNow, const sf::Vector2f& offset){
+    
+    float XCenter =  l_where.x*Tile_Size + Tile_Size/2;
+    float YCenter =  l_where.y*Tile_Size + Tile_Size/2;
 
-void S_Movement::MovementStep(float l_dT __attribute__((unused)), C_Movable* l_movable,C_Position* l_position){
+    if( ! ( (l_isNow.x >= ( XCenter - fabs(offset.x) ) ) and l_isNow.x <= ((XCenter + fabs(offset.x)) )) ) {
+        
+        return false;
+    }
+
+    if( ! ( l_isNow.y >= ( YCenter - fabs(offset.y) ) and l_isNow.y <= (YCenter + fabs(offset.y)) )) {
+        return false;
+    }
+    
+    return true;
+}
+
+
+
+void S_Movement::CheckDirection(C_Position* position, C_Movable* movable, const EntityId& entity){
+    
+    #ifdef MOVABLE_DEBBUG
+        sf::Vector2f target   = movable->GetFTargetPosition();
+        sf::Vector2u nextStep = movable->GetCheckpoint();
+    #endif
+
+    if( onPosition( movable->GetCheckpoint() , position->GetFPosition() , movable->GetVelocity() )){
+
+
+       #ifdef MOVABLE_DEBBUG
+            std::cout << " I REACH POSITION :: " << nextStep.x << " | " << nextStep.y << std::endl;
+            std::cout << "CURRENT_VCTOR :: " << now.x << " " << now.y << std::endl;
+            std::cout << "TARGET_VECTOR :: " << (int)target.x/32 << " " << (int)target.y/32 << std::endl;
+            std::cout << " Current Direction :: " << (int)movable->GetDirection() << std::endl;
+            std::cout << "Stack size  ::" << position->SetSize() << std::endl;
+            std::cout << " Condition :: " << onPosition( t2 , now,40) << " " << (position->SetSize() == 1)  << " "  << (onPosition( t2 , now,40) and position->SetSize() == 1) << std::endl;
+        #endif
+
+        if( onPosition( movable->GetUTargetPosition(), position->GetFPosition(), movable->GetVelocity()) and movable->GetStackSize()){
+
+            toRelease.push_back(movable->GetCurrentReservation());
+            toRelease.push_back(movable->GetPrevReservation());
+            toRelease.push_back(position->GetUPosition() );
+            toRelease.push_back(position->GetBlockTileOld() );
+
+        //    m_ReservedTiles[movable->GetCurrentReservation().x][movable->GetCurrentReservation().y] = false;
+        //    m_ReservedTiles[movable->GetPrevReservation().x]   [movable->GetPrevReservation().y   ] = false;
+            StopEntity(entity);
+            movable->GetNextStep();
+
+            #ifdef MOVABLE_DEBBUG
+                std::cout << "Shoudl Stop here " << std::endl;
+            #endif
+
+        }else{
+
+            sf::Vector2f centerOfTargetTile = { 
+                static_cast<float>(movable->GetCheckpoint().x*Tile_Size + Tile_Size/2),
+                static_cast<float>(movable->GetCheckpoint().y*Tile_Size + Tile_Size/2)
+                };
+            position->SetPosition(centerOfTargetTile);
+
+            Direction dir = movable->GetNextStep();
+
+            #ifdef MOVABLE_DEBBUG
+                std::cout << " Next Navi-Point :: " << movable->GetCheckpoint().x << " | " << movable->GetCheckpoint().y << std::endl;
+                std::cout << "Change Direction to : " << (int)dir << std::endl;
+                std::cout << "Current Next Direction :: " << movable->GetCheckpoint().x << " | " << movable->GetCheckpoint().y << std::endl; 
+            #endif
+
+        //    m_ReservedTiles[movable->GetCurrentReservation().x][movable->GetCurrentReservation().y] = false;
+        //    m_ReservedTiles[movable->GetPrevReservation().x]   [movable->GetPrevReservation().y   ] = false;
+           
+            toRelease.push_back(movable->GetCurrentReservation());
+            toRelease.push_back(movable->GetPrevReservation());
+            toRelease.push_back(position->GetUPosition() );
+            toRelease.push_back(position->GetBlockTileOld() );
+
+        //    movable->SetDirection(dir);
+              movable->CalculateSpeed(dir);
+            
+        }
+    }else{
+            movable->CalculateSpeed();
+        }
+}
+
+void S_Movement::MovementStep( C_Position* l_position, C_Movable* l_movable, float l_dT){
 
     //GETTING HOW LONG STEP IS
     sf::Vector2f f_coefficient =GetTileFriction(
         l_position->GetElevation(),
-        floor(l_position->GetPosition().x / Sheet::Tile_Size) > 0 ? floor(l_position->GetPosition().x / Sheet::Tile_Size) : 0 ,
-        floor(l_position->GetPosition().y / Sheet::Tile_Size) > 0 ? floor(l_position->GetPosition().y / Sheet::Tile_Size) : 0 
+        l_position->GetUPosition().x  ? l_position->GetUPosition().x : 0 ,
+        l_position->GetUPosition().y  ? l_position->GetUPosition().y : 0 
     );
-    /*
-    float magnitude = sqrt(
-        (l_movable->GetVelocity().x * l_movable->GetVelocity().x) +
-        (l_movable->GetVelocity().y * l_movable->GetVelocity().y)
-    );
-    */
-    #ifdef SDR_RUN
-        std::cout << "Entity "
-         << " :: cof :: " << f_coefficient.x << " " << f_coefficient.y  << std::endl
-         << " :: speed :: " << l_movable->GetSpeed().x << " " << l_movable->GetSpeed().y << std::endl
-         << " :: l_dt :: " << l_dT 
-         << std::endl ;
-    #endif
-
 
     l_movable->SetModificator(
         (f_coefficient.x * l_movable->GetSpeed().x) *l_dT,
         (f_coefficient.y * l_movable->GetSpeed().y) *l_dT
     );
-
-    /*Mo
-
-    float magnitude = sqrt(
-    (l_movable->GetVelocity().x * l_movable->GetVelocity().x) +
-    (l_movable->GetVelocity().y * l_movable->GetVelocity().y));
-
-    if (magnitude <= l_movable->GetMaxVelocity()){ return; }
-    float max_V = l_movable->GetMaxVelocity();
-
-    l_movable->SetVelocity(sf::Vector2f(
-    (l_movable->GetVelocity().x / magnitude) * max_V,
-    (l_movable->GetVelocity().y / magnitude) * max_V));
-
-    */
-
 }
 
 const sf::Vector2f& S_Movement::GetTileFriction(
     unsigned int l_elevation __attribute__((unused)) , unsigned int l_x, unsigned int l_y)
     {
   //   if( l_y >  100000 or l_x > 100000  ) { return m_gameMap->GetTerrianFriction( 0,0 ) ;}
+
+        if( l_x > m_gameMap->GetMapSize().x  or l_y > m_gameMap->GetMapSize().y  ){
+
+            return m_gameMap->GetTerrianFriction(0,0);
+        }
 
     #ifdef DEBUGG_RUN
         std::cout << "S_MOVEMENT :: GETTLEFRICTION :: START" << std::endl;
@@ -331,13 +607,20 @@ void S_Movement::StopEntity(const EntityId& l_entity){
     C_Movable* movable = m_systemManager->GetEntityManager()->GetComponent<C_Movable>(l_entity,Component::Movable);
     C_Position* position = m_systemManager->GetEntityManager()->GetComponent<C_Position>(l_entity,Component::Position);
     
-    position->SetTargetPosition( position->GetPosition().x, position->GetPosition().y);
+    position->SetPosition((int)position->GetFPosition().x/Tile_Size*Tile_Size +Tile_Size/2,(int)position->GetFPosition().y/Tile_Size*Tile_Size+Tile_Size/2);
+    movable ->SetTargetPosition( position->GetFPosition().x, position->GetFPosition().y);
 
     #ifdef SDR_RUN
         std::cout << "Entity " << l_entity << " :: STOP" << std::endl;
     #endif
 
-    movable->SetModificator(sf::Vector2f(0.f,0.f));
+//    m_ReservedTiles[(int)position->GetFPosition().x/Tile_Size][(int)position->GetFPosition().y/Tile_Size] = false;
+
+    position->StopMoving();
+    movable ->StopMove();
+    movable ->SetDirection(Direction::None);
+    movable ->CalculateSpeed();
+
 }
 
 void S_Movement::StopEntity(const EntityId& l_entity,const Axis& l_axis)
@@ -348,12 +631,67 @@ void S_Movement::StopEntity(const EntityId& l_entity,const Axis& l_axis)
     C_Position* position = m_systemManager->GetEntityManager()->GetComponent<C_Position>(l_entity,Component::Position);
     
     C_Movable* movable = m_systemManager->GetEntityManager()->GetComponent<C_Movable>(l_entity,Component::Movable);
-    if(l_axis == Axis::x){
-        movable->SetVelocity(sf::Vector2f(0.f, movable->GetVelocity().y));
 
-        position->SetTargetPosition( position->GetPosition().x, position->GetTargetPosition().y);
+    Direction dir = movable->GetDirection();
+
+    if(l_axis == Axis::x){
+
+        switch( dir ){
+            case Direction::Left:
+                movable->SetDirection(Direction::None);
+            break;
+            case Direction::LeftDown:
+                movable->SetDirection(Direction::Down);
+            break;
+            case Direction::LeftUp:
+                movable->SetDirection(Direction::Up);
+            break;
+            case Direction::Right:
+                movable->SetDirection(Direction::None);
+            break;
+            case Direction::RightDown:
+                movable->SetDirection(Direction::Down);
+            break;
+            case Direction::RightUp:
+                movable->SetDirection(Direction::Up);
+            break;
+            default:
+            break;
+        }
+
+
+        movable->SetVelocity(sf::Vector2f(0.f, movable->GetVelocity().y));
+        movable->SetTargetPosition( position->GetFPosition().x, movable->GetFTargetPosition().y);
     } else if(l_axis == Axis::y){
+
+
+        switch( dir ){
+            case Direction::Up:
+                movable->SetDirection(Direction::None);
+            break;
+            case Direction::LeftDown:
+                movable->SetDirection(Direction::Left);
+            break;
+            case Direction::LeftUp:
+                movable->SetDirection(Direction::Left);
+            break;
+            case Direction::Down:
+                movable->SetDirection(Direction::None);
+            break;
+            case Direction::RightDown:
+                movable->SetDirection(Direction::Right);
+            break;
+            case Direction::RightUp:
+                movable->SetDirection(Direction::Right);
+            break;
+
+            default:
+            break;
+
+        }
+
         movable->SetVelocity(sf::Vector2f(movable->GetVelocity().x, 0.f));
+        movable->SetTargetPosition( movable->GetFTargetPosition().x, position->GetFPosition().y); 
     }
 
     #ifdef DEBUGG_RUN
@@ -361,56 +699,123 @@ void S_Movement::StopEntity(const EntityId& l_entity,const Axis& l_axis)
     #endif
 }
 
-void S_Movement::SetTargetPosition( float l_x, float l_y){
-    
-    std::set<unsigned int> m_leftWalkers;
-    std::set<unsigned int> m_rightWalkers;
-    std::set<unsigned int> m_upWalkers;
-    std::set<unsigned int> m_downWalkers;
+void S_Movement::PauseMove(unsigned int entity){
+    C_Position* position = m_systemManager->GetEntityManager()->GetComponent<C_Position>(entity,Component::Position);
+    position->Pause();
+}
 
-    // auto pos = position->GetPosition();
+void S_Movement::TestTargetPosition( ){
 
-    C_Movable* movable;
+    std::set<unsigned int> m_walking[(int)Direction::ENDMARK];
 
     for(auto &entity : m_entities){
+        C_Controller* contr = m_systemManager->GetEntityManager()->GetComponent<C_Controller>(entity,Component::Controller);
+        if(! contr->IsActive()){ continue; }       
+        C_Position* position = m_systemManager->GetEntityManager()->GetComponent<C_Position>(entity,Component::Position);
+        C_Movable* movable = m_systemManager->GetEntityManager()->GetComponent<C_Movable>(entity,Component::Movable);
+           
+        StopEntity(entity);
+
+        position->Moving();
+        position->SetPosition( 1*Tile_Size, 1*Tile_Size );
+        position->SetPosition( ((int)position->GetFPosition().x/32) * 32+16, ((int)position->GetFPosition().y/32) * 32+16 );
+        std::stack<SE> road;
+    
+        road.push( SE( Direction::LeftUp    , { 1, 1 } ) );
+        road.push( SE( Direction::Down      , { 8, 8 } ) );
+        road.push( SE( Direction::RightUp   , { 8, 1 } ) );
+        road.push( SE( Direction::Left      , { 1, 8 } ) );
+        road.push( SE( Direction::RightDown , { 8, 8 } ) );
+        road.push( SE( Direction::Up        , { 1, 1 } ) );
+        road.push( SE( Direction::LeftDown  , { 1, 8 } ) );
+        road.push( SE( Direction::Right     , { 8, 1 } ) );
+
+        //position->SetStackSteps(AStar(entity));
+        movable->SetStackSteps(road);
+
+        Direction dir = movable->DirectionCheck();
+
+        m_walking[(int)dir].insert(entity);
+
+        movable->SetTargetPosition( 1.5*Tile_Size, 1.5*Tile_Size);
+        
+        #ifdef MOVABLE_DEBBUG
+
+        std::cout << " COMPLETE PACK OF INFORMATIONS :: "<< std::endl << " TARGET VECTOR :: " << position->GetFTargetPosition().x << " | " <<  position->GetFTargetPosition().y<< std::endl <<
+        " TEMP VECTOR  :: " << position->GetCheckpoint().x << " | " <<position->GetCheckpoint().y << std::endl <<
+        " DIRECTION :: " << (int)dir 
+        << std::endl;
+
+        #endif
+    }
+
+    for( int i = 1; i < (int)Direction::ENDMARK ; i++ ){
+        if( m_walking[i].size() )
+            SendMessage( EntityMessage::Move, i, m_walking[i]);
+    }
+
+    #ifdef SDR_RUN
+        std::cout << "Entity " << l_entity << " :: Postion Set to :: " << l_x << " " << l_y  << std::endl;
+    #endif
+}
+
+void S_Movement::CallAStarAgain(unsigned int entity __attribute__((unused))){
+
+
+
+  //  C_Movable* movable = m_systemManager->GetEntityManager()->GetComponent<C_Movable>(entity,Component::Movable);
+
+   // movable->SetStackSteps(AStar(entity));
+
+    //position->SetTargetPosition( l_x , l_y);
+
+
+
+}
+
+void S_Movement::SetTargetPosition( float l_x, float l_y){
+    
+    std::set<unsigned int> m_walking[(int)Direction::ENDMARK];
+
+    // auto pos = position->GetFPosition();
+
+    //C_Movable* movable;
+    
+    #pragma omp parallel for
+    for(unsigned int i = 0; i < m_entities.size(); i++){
+    //    std::cout << "teraz dziala watek nr: " << omp_get_thread_num() << "\n";
+    auto &entity = m_entities[i];
     C_Controller* contr = m_systemManager->GetEntityManager()->GetComponent<C_Controller>(entity,Component::Controller);
     if(! contr->IsActive()){ continue; }       
     C_Position* position = m_systemManager->GetEntityManager()->GetComponent<C_Position>(entity,Component::Position);
-    movable = m_systemManager->GetEntityManager()->GetComponent<C_Movable>(entity,Component::Movable);
+    C_Movable* movable = m_systemManager->GetEntityManager()->GetComponent<C_Movable>(entity,Component::Movable);
     
 
-   
+    StopEntity(entity);
+    m_ReservedTiles[movable->GetCurrentReservation().x][movable->GetCurrentReservation().y] = false;
+    
 
-    auto pos = position->GetPosition();
+    movable->SetTargetPosition( l_x, l_y      );
+    movable->SetStackSteps(     AStar(entity) );
 
-    if( l_x < pos.x ){
-        movable->SetDirection(Direction::Left);
-        m_leftWalkers.insert(entity);
-    }else if( l_x > pos.x ) {
-        movable->SetDirection(Direction::Right);
-        m_rightWalkers.insert(entity);
-    }else{
-        if( l_y < pos.y){
-            movable->SetDirection(Direction::Down);
-            m_downWalkers.insert(entity);
-        }else{
-            movable->SetDirection(Direction::Up);
-            m_upWalkers.insert(entity);
-        }
+    Direction dir = movable->DirectionCheck();
+    movable ->StartMove();
+    position->Moving();
+    position->Play();
+    
+    #pragma omp critical 
+    {
+        m_walking[(int)dir].insert(entity);
     }
-
-    position->SetTargetPosition( l_x , l_y);
-
-    
-    position->SetStackSteps(AStar(entity));
+   // position->SetTargetPosition( l_x , l_y);
 
     }
 
 
-    if( m_leftWalkers.size()  ) SendMessage(EntityMessage::Move, (int)Direction::Left,  m_leftWalkers);
-    if( m_rightWalkers.size() ) SendMessage(EntityMessage::Move, (int)Direction::Right, m_rightWalkers);
-    if( m_upWalkers.size()    ) SendMessage(EntityMessage::Move, (int)Direction::Up,    m_upWalkers);
-    if( m_downWalkers.size()  ) SendMessage(EntityMessage::Move, (int)Direction::Down,  m_downWalkers);
+    for( int i = 1; i < (int)Direction::ENDMARK ; i++ ){
+        if( m_walking[i].size() )
+            SendMessage( EntityMessage::Move, i, m_walking[i]);
+    }
 
 
     #ifdef SDR_RUN
@@ -429,8 +834,9 @@ void S_Movement::SendMessage( const  EntityMessage& l_type, int information, std
 
 void S_Movement::SetPosition(float l_x, float l_y, const EntityId& l_entity){
     C_Position* position = m_systemManager->GetEntityManager()->GetComponent<C_Position>(l_entity,Component::Position);
+    C_Movable* movable = m_systemManager->GetEntityManager()->GetComponent<C_Movable>(l_entity,Component::Movable);
     position->SetPosition(l_x,l_y);
-    position->SetTargetPosition(l_x,l_y);
+    movable->SetTargetPosition(l_x,l_y);
 }
 
 void S_Movement::SetMap(Map* l_gameMap){
@@ -442,165 +848,265 @@ void S_Movement::SetMap(Map* l_gameMap){
 
     m_mapSize = l_gameMap->GetMapSize();
 
+    m_ReservedTiles = new bool*[m_mapSize.x];
+
+    for( unsigned int i = 0; i < m_mapSize.x; i++){
+        m_ReservedTiles[i] = new bool[m_mapSize.y];
+        for( unsigned int j =0; j< m_mapSize.y; j++){
+            m_ReservedTiles[i][j] = false;
+        }
+    }
+
     #ifdef DEBUGG_RUN
     std::cout << "S_MOVEMENT :: SETMAP :: DONE" << std::endl;
     #endif
 }
 
-std::stack<SE>& S_Movement::AStar(unsigned int& l_entity){
+std::stack<SE> S_Movement::AStar(unsigned int& l_entity){
     C_Position* position = m_systemManager->GetEntityManager()->GetComponent<C_Position>(l_entity,Component::Position);
-
+    C_Movable* movable = m_systemManager->GetEntityManager()->GetComponent<C_Movable>(l_entity,Component::Movable);
+    
 
     sf::Vector2u pos = { 
-        ((unsigned int)position->GetPosition().x)/32,
-        ((unsigned int)position->GetPosition().y)/32
+        ((unsigned int)position->GetFPosition().x)/Tile_Size,
+        ((unsigned int)position->GetFPosition().y)/Tile_Size
     };
 
-
-
     sf::Vector2u targ = { 
-        (unsigned int)position->GetTargetPosition().x/32,
-        (unsigned int)position->GetTargetPosition().y/32
+        (unsigned int)movable->GetFTargetPosition().x/Tile_Size,
+        (unsigned int)movable->GetFTargetPosition().y/Tile_Size
     };    
 
-    std::cout << pos.x << " " << pos.y << "  :  " << targ.x << " " << targ.y << std::endl;
+    while( !m_gameMap->IsWalkable(targ.x, targ.y )){
 
+        if( pos == targ ) { break; }
+
+
+        sf::Vector2u xRange = {
+            ( targ.x > 0 ) ? targ.x-1 : targ.x,
+            ( targ.x < m_mapSize.x-1 ) ? targ.x+1 :targ.x
+         };
+
+         sf::Vector2u yRange = {
+            ( targ.y > 0 ) ? targ.y-1 : targ.y,
+            ( targ.y < m_mapSize.y-1 ) ? targ.y+1 : targ.y
+         };
+
+         float best = 99999;
+         for( unsigned int i = xRange.x; i <= xRange.y; i++ ){
+            for( unsigned int j = yRange.x; j<= yRange.y; j++){
+                float t1 = (float)i - (float)pos.x ;
+                float t2 = (float)j - (float)pos.y ;
+                
+                float sq = sqrt((t1*t1) + (t2*t2));
+                if( best > sq ){
+                    targ.x = i;
+                    targ.y = j;
+                    best = sq; 
+
+                } 
+            }
+        }
+    }
+
+   movable->SetTargetPosition( targ.x*Tile_Size + Tile_Size/2 , targ.y*Tile_Size + Tile_Size/2);
+
+   targ = { 
+        (unsigned int)movable->GetFTargetPosition().x/Tile_Size,
+        (unsigned int)movable->GetFTargetPosition().y/Tile_Size
+    };  
+
+    
     using my_container_t = std::vector<QE>;
 
     auto my_comp = [](const QE& e1, const QE& e2){
         return e1.u1 > e2.u1;
     };
 
-   // const sf::Vector2u m_mapSize = m_gameMap->GetMapSize();
-
-    /////////////////////////////////////////////////////////////////////////////////
-
     std::priority_queue< 
         QE,
         my_container_t,
         decltype(my_comp)
-    >unseen(my_comp);
+    >Que(my_comp);
 
-    bool**seen       = new bool*[m_mapSize.x];
-    bool**unSeen     = new bool*[m_mapSize.x];
-    unsigned int **g = new unsigned int *[m_mapSize.x];
-    std::pair<unsigned int, unsigned int>** previous = new  std::pair<unsigned int, unsigned int>*[m_mapSize.x];
+    //const int MAX_MAP_SIZE = 5000; 
+
+    bool**checked      = new bool*[m_mapSize.x];
+    bool**waitToCheck     = new bool*[m_mapSize.x];
+    unsigned int **heuristicValueLowestInQueue = new unsigned int *[m_mapSize.x];
+    unsigned int **heuristicValueLowestEver = new unsigned int *[m_mapSize.x];
+    
+    std::pair<unsigned int, unsigned int>** previousStep = new  std::pair<unsigned int, unsigned int>*[m_mapSize.x];
+
+    unsigned int hm = 0;
 
     for( unsigned int i = 0; i < m_mapSize.x; i++ ){
-           seen[i] = new bool[m_mapSize.y];
-         unSeen[i] = new bool[m_mapSize.y];
-              g[i] = new unsigned int[m_mapSize.y];
-       previous[i] = new  std::pair<unsigned int, unsigned int>[m_mapSize.y];
+             checked[i] = new bool[m_mapSize.y];
+         waitToCheck[i] = new bool[m_mapSize.y];
+      heuristicValueLowestInQueue[i] = new unsigned int[m_mapSize.y];
+      heuristicValueLowestEver[i] = new unsigned int[m_mapSize.y];
+        previousStep[i] = new  std::pair<unsigned int, unsigned int>[m_mapSize.y];
     }
-
-
 
     for( unsigned int i = 0; i < m_mapSize.x; i++){
         for( unsigned int j =0; j< m_mapSize.y; j++){
-            seen[i][j] = false;
-            unSeen[i][j] = true;
-            g[i][j] = 2000;
+            checked[i][j] = false;
+            waitToCheck[i][j] = false;
+
+            heuristicValueLowestInQueue[i][j] = 0;
+            heuristicValueLowestEver[i][j] = 0;
+            //heuristicValue[i][j] = INT_MAX;
        }
     }
 
-    // CALCULATE AT THE BEGIIGNING OF MOVE :
-    //  FIND PATH:
-    //  SAVE PATH : as list of directions 
-    //  IF COLLISION ON PATH : RECALCULATE
-    //  IF NO PATH IN COLLISION EVENT : STOP   
+    Que.push(QE(0, pos.x, pos.y));
 
-    unseen.push( 
-        QE(0, pos.x, pos.y)
-    );
 
-    g[pos.x][pos.y] = 0; 
-    unSeen[pos.x][pos.y] = false;
+   // std::cout << Que.size() << std::endl;
 
-    int howM = 0;
+   // heuristicValue[pos.x][pos.y] = 0; 
+       waitToCheck[pos.x][pos.y] = true;
+           
+      previousStep[pos.x][pos.y] = std::pair<unsigned int, unsigned int>( pos.x,pos.y );
 
-    while( !unseen.empty() ){
-        howM ++;
+    bool forceEnd = false;
+
+
+    while( Que.size() > 0 and !forceEnd ){
+
+        hm++;
         
-        const QE x = unseen.top();
-        if( (x.u2 == targ.x) and (x.u3 == targ.y) ) {
+        QE current = Que.top();
 
-        for( unsigned int i = 0; i<m_mapSize.x; i++ ){
-            delete [] seen[i];
-            delete [] unSeen[i];
-            delete [] g[i];
-        }
-        delete [] seen;
-        delete [] unSeen;
-        delete [] g; 
-   
-             return  CalculateRoad(previous, pos, targ);
-        } // CALCULATE BACK:
-        
-        seen[x.u2][x.u3] = true;
-        
-        unseen.pop();
+        if(( current.u2 == targ.x) and ( current.u3 == targ.y)){
+        //std::cout << hm << std::endl;
 
-        sf::Vector2u xs = {
-            ( x.u2 != 0 ) ? x.u2-1 : x.u2,
-            ( x.u2 != m_mapSize.x-1 ) ? x.u2+1 : x.u2
-         };
+            for( unsigned int i = 0; i<m_mapSize.x; i++ ){
+                delete [] checked[i];
+                delete [] waitToCheck[i];
+                delete [] heuristicValueLowestInQueue[i];
+                delete [] heuristicValueLowestEver[i];
 
-         sf::Vector2u ys = {
-            ( x.u3 != 0 ) ? x.u3-1 : x.u3,
-            ( x.u3 != m_mapSize.y-1 ) ? x.u3+1 : x.u3
-         };
-
-        for( unsigned int i = xs.x;i <= xs.y;i++ )
-        {
-            for( unsigned int j = ys.x;j <= ys.y;j++ )
-            {
-
-                
-                if( seen[i][j] ) { continue; }
-
-                unsigned int geoX = i - targ.x;
-                unsigned int geoY = j - targ.y; 
-
-                geoX = geoX*geoX;
-                geoY = geoY*geoY;
-
-                unsigned int newG = g[x.u2][x.u3] + std::round(sqrt(geoX+geoY))*10 + (100 * ( 1.0f - m_gameMap->GetTerrianFriction(i,j).x )) ;
-
-                bool isBetter = false;
-                unseen.push( 
-                    QE(newG, i, j)
-                );
-                if( ! unSeen[i][j]  ){
-                    unSeen[i][j] = false;
-                    isBetter = true; 
-                }else if( newG < g[i][j] ) {
-                    isBetter = true;
-                }
-
-                if(isBetter){
-                    
-                    previous[i][j] = std::make_pair(x.u2, x.u3);
-                    g[i][j] = newG;
-                }
+                // delete [] previousStep[i];
             }
+            delete [] checked;
+            delete [] waitToCheck;
+            delete [] heuristicValueLowestInQueue;
+            delete [] heuristicValueLowestEver;
+            
+            //delete [] previousStep;
+            
+        //    std::cout << hm <<" Found" << std::endl;
+
+            return CalculateRoad(previousStep, pos, targ);
+
+            
         }
+
+        Que.pop();
+
+        sf::Vector2u xRange = {
+            ( current.u2 > 0 ) ? current.u2-1 : current.u2,
+            ( current.u2 < m_mapSize.x-1 ) ? current.u2+1 : current.u2
+         };
+
+         sf::Vector2u yRange = {
+            ( current.u3 > 0 ) ? current.u3-1 : current.u3,
+            ( current.u3 < m_mapSize.y-1 ) ? current.u3+1 : current.u3
+         };
+
+
+         for( unsigned int i = xRange.x; i <= xRange.y; i++ )
+            {for( unsigned int j = yRange.x; j<= yRange.y; j++){
+
+
+                if(!m_gameMap->IsWalkable(i, j)) { continue; }
+
+                float distanceX = abs(i - targ.x);
+                float distanceY = abs(j - targ.y);
+
+            //    distanceX = distanceX*distanceX;
+            //    distanceY = distanceY*distanceY;
+
+                float max = distanceX > distanceY ? distanceX*(1.0-GetTileFriction(0,i,j).x) : distanceY *(1.0-GetTileFriction(0,i,j).y); 
+
+                float newHeVal = heuristicValueLowestEver[current.u2][current.u3] 
+                + max*1000;//+ sqrt( distanceX + distanceY );
+
+                if( j - current.u3 == 0 or i - current.u2 == 0  ){ newHeVal -=40.0*(1.0-GetTileFriction(0,i,j).x); }
+                /*
+
+                h = max{ abs(curent_cell.x - goal.x),abs(curent_cell.y - goal.y) };
+
+                */
+
+
+                if( waitToCheck[i][j] ){
+
+                    if( heuristicValueLowestInQueue[i][j] > newHeVal ){
+                         heuristicValueLowestInQueue[i][j] = newHeVal;
+                        Que.push( QE(newHeVal, i, j));
+                        waitToCheck[i][j] = true;
+                        previousStep[i][j] = std::make_pair(current.u2,current.u3);
+                    }
+
+                }else{
+
+                    if( ! checked[i][j] ){
+                        heuristicValueLowestEver[i][j] = newHeVal;
+                        
+                        Que.push( QE(newHeVal, i, j));
+                        waitToCheck[i][j] = true;
+                        previousStep[i][j] = std::make_pair(current.u2,current.u3);
+                    }else if( heuristicValueLowestEver[i][j] > newHeVal ){
+                        heuristicValueLowestEver[i][j] = newHeVal;
+                        Que.push( QE(newHeVal, i, j));
+                        waitToCheck[i][j] = true;
+                        previousStep[i][j] = std::make_pair(current.u2,current.u3);
+
+                    }
+
+                }
+
+
+                //Jeśli wezeł z taką samo pozycją jak current jest w OPEN 
+                // i ma mniejszą heureze niz current to go pomiń.
+
+                //Jeśli wezeł z taką samą pozycją jak current jest w Closed
+                // i ma mniejszy mniejszą heureze pomin go wprzeciwnym przypadku 
+                // dodać do listy.
+
+            }}
+
+            checked[current.u2][current.u3] = true;
+
+
+            if( hm >  m_mapSize.x * m_mapSize.y ) {
+                
+                forceEnd = true;
+
+            }
     }
+
 
     for( unsigned int i = 0; i<m_mapSize.x; i++ ){
-        delete [] seen[i];
-        delete [] unSeen[i];
-        delete [] g[i];
-        delete [] previous[i];
-    }
-    delete [] seen;
-    delete [] unSeen;
-    delete [] g; 
-    delete [] previous;
+            delete [] checked[i];
+            delete [] waitToCheck[i];
+            delete [] heuristicValueLowestInQueue[i];
+            delete [] heuristicValueLowestEver[i];
+            delete [] previousStep[i];
+        }
+    delete [] checked;
+    delete [] waitToCheck;
+    delete [] heuristicValueLowestInQueue;
+    delete [] heuristicValueLowestEver;
+    delete [] previousStep;
 
-    std::stack<SE> temp;
-    std::stack<SE>& t = temp;
+    std::stack<SE> road = std::stack<SE>(); 
 
-    return t;
+    road.push(SE( Direction::None, pos.x, pos.y ));
+
+    return  road;
 }
 
 void S_Movement::SetDirection( const std::set<unsigned int>& participians, const Direction& l_dir){
@@ -627,28 +1133,20 @@ void S_Movement::SetDirection( const std::set<unsigned int>& participians, const
 
 }
 
-std::stack<SE>& S_Movement::CalculateRoad(std::pair<unsigned int, unsigned int>** previous, sf::Vector2u& start, sf::Vector2u& target){
-    std::stack<SE> t;
-    std::stack<SE>& road = t;
-
-    sf::Vector2u cor = target;
+Direction S_Movement::CalculateDirection( sf::Vector2u& in, std::pair<unsigned int, unsigned int>& out  ){
+    int x_dist = in.x - out.first; 
+    int y_dist = in.y - out.second;
 
 
-    //First Check
-    
-    int x_dist = cor.x - previous[cor.x][cor.y].first ; 
-    int y_dist = cor.y - previous[cor.x][cor.y].second;
 
-    Direction dir;
-
-   switch(x_dist){
+    switch(x_dist){
             case 0:
             switch(y_dist){
                 case 1:
-                        dir = Direction::Down;
+                        return Direction::Down;
                 break;
                 case -1:
-                        dir = Direction::Up;  
+                        return Direction::Up;  
                 break;
                 default:
                 break;
@@ -657,13 +1155,13 @@ std::stack<SE>& S_Movement::CalculateRoad(std::pair<unsigned int, unsigned int>*
             case 1:
             switch(y_dist){
                 case 0:
-                    dir = Direction::Right;
+                    return Direction::Right;
                 break;
                 case 1:
-                    dir = Direction::RightDown;
+                    return Direction::RightDown;
                 break;
                 case -1:
-                    dir = Direction::RightUp;
+                    return Direction::RightUp;
                 break;
                 default:
                 break;
@@ -672,13 +1170,13 @@ std::stack<SE>& S_Movement::CalculateRoad(std::pair<unsigned int, unsigned int>*
             case -1:
             switch(y_dist){
                 case 0:
-                    dir = Direction::Left;   
+                    return Direction::Left;   
                 break;
                 case 1:
-                    dir = Direction::LeftDown;
+                    return Direction::LeftDown;
                 break;
                 case -1:
-                    dir = Direction::LeftUp;
+                    return Direction::LeftUp;
                 break;
                 default:
                 break;
@@ -688,88 +1186,35 @@ std::stack<SE>& S_Movement::CalculateRoad(std::pair<unsigned int, unsigned int>*
         break;
     }
 
+    return Direction::Up;
+
+}
+
+std::stack<SE> S_Movement::CalculateRoad(std::pair<unsigned int, unsigned int>** previous, sf::Vector2u& start, sf::Vector2u& target){
+    std::stack<SE> road;
+    
+    sf::Vector2u cor = {target.x, target.y};
+
+    Direction dir = CalculateDirection( cor, previous[cor.x][cor.y]);
+
+    road.push( SE( dir, target ) );
+
+    sf::Vector2u holder = cor;
 
     while ( !(cor.x == start.x  && cor.y == start.y) ){
 
-        sf::Vector2u newTarget = { previous[cor.x][cor.y].first, previous[cor.x][cor.y].second };
-    
-        x_dist = cor.x - previous[cor.x][cor.y].first ; 
-        y_dist = cor.y - previous[cor.x][cor.y].second;
+        cor = { previous[cor.x][cor.y].first, previous[cor.x][cor.y].second };
+        
+        Direction newdir = CalculateDirection( cor, previous[cor.x][cor.y] );
 
-        switch(x_dist){
-            case 0:
-            switch(y_dist){
-                case 1:
-                    if(dir != Direction::Down){
-                        road.push( SE( dir, cor ) );
-                        dir = Direction::Down;
-                    }
-                break;
-                case -1:
-                    if(dir != Direction::Up){
-                        road.push( SE( dir, cor ) );
-                        dir = Direction::Up;                        
-                    }
-                break;
-                default:
-                break;
-            }
-            break;
-            case 1:
-            switch(y_dist){
-                case 0:
-                    if(dir != Direction::Right){
-                        road.push( SE( dir, cor ) );
-                        dir = Direction::Right;
-                    }
-                break;
-                case 1:
-                    if(dir != Direction::RightDown){
-                        road.push( SE( dir,cor ) );
-                        dir = Direction::RightDown;
-                    }
-                break;
-                case -1:
-                    if(dir != Direction::RightUp){
-                        road.push( SE( dir,cor ) );
-                        dir = Direction::RightUp;
-                    }
-                break;
-                default:
-                break;
-            }
-            break;
-            case -1:
-            switch(y_dist){
-                case 0:
-                    if(dir != Direction::Left){
-                        road.push( SE( dir, cor ) );
-                        dir = Direction::Left;
-                    }
-                break;
-                case 1:
-                    if(dir != Direction::LeftDown){
-                        road.push( SE( dir, cor ) );
-                        dir = Direction::LeftDown;
-                    }
-                break;
-                case -1:
-                    if(dir != Direction::LeftUp){
-                        road.push( SE( dir, cor ) );
-                        dir = Direction::LeftUp;
-                    }
-                break;
-                default:
-                break;
-            }
-            break;
-            default:
-            break;
+        if( dir != newdir ){
+            holder = cor;
+
+            if(!(cor.x == start.x  && cor.y == start.y) ) road.push( SE(newdir, holder) );
+            
         }
-        cor = newTarget;
+        dir = newdir;
     }
-   
-    road.push( SE( dir, cor) );
 
     for( unsigned int i = 0; i< m_mapSize.x; i++ ){
         delete [] previous[i];
@@ -779,12 +1224,11 @@ std::stack<SE>& S_Movement::CalculateRoad(std::pair<unsigned int, unsigned int>*
     return road;
 }
 
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void S_Movement::SetTargetPosition(const EntityId& l_entity, float l_x, float l_y){
+void S_Movement::SetTargetPosition(const EntityId& l_entity __attribute__((unused)), float l_x __attribute__((unused)), float l_y __attribute__((unused))){
   //  C_Position* position = m_systemManager->GetEntityManager()->GetComponent<C_Position>(l_entity,Component::Position);
-   // auto pos = position->GetPosition();
+   // auto pos = position->GetFPosition();
 
     //OUT OF DATE
 
@@ -795,42 +1239,99 @@ void S_Movement::SetTargetPosition(const EntityId& l_entity, float l_x, float l_
     #endif
 }
 
-
-
 void S_Movement::SetDirection(const EntityId& l_entity,const Direction& l_dir){
 
-#ifdef DEBUGG_RUN
-    std::cout << "S_MOVEMENT :: SETDIRECTION :: BEGIN" << std::endl;
-#endif
+    #ifdef DEBUGG_RUN
+        std::cout << "S_MOVEMENT :: SETDIRECTION :: BEGIN" << std::endl;
+    #endif
 
-C_Movable* movable = m_systemManager->GetEntityManager()->
-GetComponent<C_Movable>(l_entity,Component::Movable);
-movable->SetDirection(l_dir);
-Message msg((MessageType)EntityMessage::Direction_Changed);
-msg.m_receivers.insert(l_entity);
-msg.m_int = (int)l_dir;
-//  m_systemManager->GetMessageHandler()->Dispatch(msg);
+    C_Movable* movable = m_systemManager->GetEntityManager()->
+    GetComponent<C_Movable>(l_entity,Component::Movable);
 
-#ifdef DEBUGG_RUN
-    std::cout << "S_MOVEMENT :: SETDIRECTION :: DONE" << std::endl;
-#endif
+
+    movable->SetDirection(l_dir);
+    
+    
+    Message msg((MessageType)EntityMessage::Direction_Changed);
+    msg.m_receivers.insert(l_entity);
+    msg.m_int = (int)l_dir;
+    //  m_systemManager->GetMessageHandler()->Dispatch(msg);
+
+    #ifdef DEBUGG_RUN
+        std::cout << "S_MOVEMENT :: SETDIRECTION :: DONE" << std::endl;
+    #endif
 
 }
 
-void S_Movement::HandleEvent(const EntityId& l_entity,const EntityEvent& l_event)
+void S_Movement::HandleEvent(const EntityId& l_entity __attribute__((unused)),const EntityEvent& l_event __attribute__((unused)))
 {
 
     #ifdef DEBUGG_RUN
         std::cout << "S_MOVEMENT :: HANDLEEVENT :: START" << std::endl;
     #endif
-
+    /*
     switch(l_event){
-    case EntityEvent::Colliding_X:
-        StopEntity(l_entity,Axis::x); 
-        break;
+    case EntityEvent::Colliding_Left:
+        C_Movable* movable = m_systemManager->GetEntityManager()->GetComponent<C_Movable>(l_entity,Component::Movable);
+        switch(movable->GetDirection()){
+            case Direction::LeftUp:
+                 StopEntity(l_entity,Axis::x); 
+                break;
+            case Direction::LeftDown:
+                 StopEntity(l_entity,Axis::x); 
+                break;
+            case Direction::Left:
+                 StopEntity(l_entity,Axis::x); 
+                break;
+        }
+        
 
-    case EntityEvent::Colliding_Y:
-        StopEntity(l_entity, Axis::y); 
+        break;
+    case EntityEvent::Colliding_Up:
+        C_Movable* movable = m_systemManager->GetEntityManager()->GetComponent<C_Movable>(l_entity,Component::Movable);
+        
+        switch(movable->GetDirection()){
+            case Direction::LeftUp:
+                 StopEntity(l_entity,Axis::y); 
+                break;
+            case Direction::Up:
+              StopEntity(l_entity,Axis::y); 
+                break;
+            case Direction::RightUp:
+              StopEntity(l_entity,Axis::y); 
+                break;
+        }
+        
+        break;
+    case EntityEvent::Colliding_Down:
+        C_Movable* movable = m_systemManager->GetEntityManager()->GetComponent<C_Movable>(l_entity,Component::Movable);
+                switch(movable->GetDirection()){
+            case Direction::Down:
+                StopEntity(l_entity,Axis::y); 
+                break;
+            case Direction::LeftDown:
+              StopEntity(l_entity,Axis::y); 
+                break;
+            case Direction::RightDown:
+              StopEntity(l_entity,Axis::y); 
+                break;
+        }
+        
+       
+        break;
+    case EntityEvent::Colliding_Right:
+        C_Movable* movable = m_systemManager->GetEntityManager()->GetComponent<C_Movable>(l_entity,Component::Movable);
+                switch(movable->GetDirection()){
+            case Direction::RightUp:
+            StopEntity(l_entity,Axis::x); 
+                break;
+            case Direction::RightDown:
+             StopEntity(l_entity,Axis::x); 
+                break;
+            case Direction::Right:
+             StopEntity(l_entity,Axis::x); 
+                break;
+        }
         break;
 
     case EntityEvent::Moving_Left:
@@ -839,6 +1340,20 @@ void S_Movement::HandleEvent(const EntityId& l_entity,const EntityEvent& l_event
 
     case EntityEvent::Moving_Right:
         SetDirection(l_entity, Direction::Right); 
+        break;
+
+    case EntityEvent::Moving_LeftDown:
+        SetDirection(l_entity, Direction::LeftDown); 
+        break;
+
+    case EntityEvent::Moving_LeftUp:
+        SetDirection(l_entity, Direction::LeftUp); 
+        break;
+    case EntityEvent::Moving_RightDown:
+        SetDirection(l_entity, Direction::RightDown); 
+        break;
+    case EntityEvent::Moving_RightUp:
+        SetDirection(l_entity, Direction::RightUp); 
         break;
 
     case EntityEvent::Moving_Up:
@@ -860,47 +1375,8 @@ void S_Movement::HandleEvent(const EntityId& l_entity,const EntityEvent& l_event
     default:
     break;
     }
-
-#ifdef DEBUGG_RUN
-    std::cout << "S_MOVEMENT :: HANDLEEVENT :: DONE" << std::endl;
-#endif
-}
-
-
-/*
-void S_Movement::MovementStep(float l_dT, C_Movable* l_movable,C_Position* l_position)
-    {
-
-
+    */
     #ifdef DEBUGG_RUN
-        std::cout << "S_MOVEMENT :: MOVEMENTSTEP :: START" << std::endl;
-    #endif
-
-        sf::Vector2f f_coefficient =GetTileFriction(
-            l_position->GetElevation(),
-            floor(l_position->GetPosition().x / Sheet::Tile_Size),
-            floor(l_position->GetPosition().y / Sheet::Tile_Size)
-        );
-
-        sf::Vector2f friction(l_movable->GetSpeed().x * f_coefficient.x,l_movable->GetSpeed().y * f_coefficient.y);
-        
-        l_movable->AddVelocity(l_movable->GetAcceleration() * l_dT);
-        l_movable->SetAcceleration(sf::Vector2f(0.0f, 0.0f));
-        l_movable->ApplyFriction(friction * l_dT);
-
-        float magnitude = sqrt(
-        (l_movable->GetVelocity().x * l_movable->GetVelocity().x) +
-        (l_movable->GetVelocity().y * l_movable->GetVelocity().y));
-
-    if (magnitude <= l_movable->GetMaxVelocity()){ return; }
-    float max_V = l_movable->GetMaxVelocity();
-    
-    l_movable->SetVelocity(sf::Vector2f(
-    (l_movable->GetVelocity().x / magnitude) * max_V,
-    (l_movable->GetVelocity().y / magnitude) * max_V));
-
-    #ifdef DEBUGG_RUN
-        std::cout << "S_MOVEMENT :: MOVEMENTSTEP :: DONE" << std::endl;
+        std::cout << "S_MOVEMENT :: HANDLEEVENT :: DONE" << std::endl;
     #endif
 }
-*/

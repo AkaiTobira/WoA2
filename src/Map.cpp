@@ -22,10 +22,10 @@ Map::Map(SharedContext* l_context, BaseState* l_curentState):m_context(l_context
     m_terrainsFrictions[Terrains::HolyGrass] = {         0.80,         0.80 };
     m_terrainsFrictions[Terrains::Rock     ] = {         0.90,         0.90 };
     m_terrainsFrictions[Terrains::Plag     ] = {         0.80,         0.80 };
-    m_terrainsFrictions[Terrains::Water    ] = {         0.05,         0.05 };
+    m_terrainsFrictions[Terrains::Water    ] = {         0.01,         0.01 };
     m_terrainsFrictions[Terrains::Ground   ] = {         0.60,         0.60 };
     m_terrainsFrictions[Terrains::Sand     ] = {         0.40,         0.40 };    
-    m_terrainsFrictions[Terrains::Ice      ] = {         0.25,         0.25 };
+    m_terrainsFrictions[Terrains::Ice      ] = {         0.30,         0.30 };
 
     #ifdef DEBUGG_RUN
         std::cout << "Map :: LOADED_KINDS_TILE :: " << m_tileSetCount << std:: endl;
@@ -43,11 +43,15 @@ Map::~Map(){
     PurgeTileSet();
     m_context->m_gameMap = nullptr;
 
-    for ( unsigned int i = 0 ; i < m_maxMapSize.y; i++)
-        delete m_mapTab[i];
 
-    delete m_mapTab;
-    delete m_terrainsFrictions;
+    for ( unsigned int i = 0 ; i < m_maxMapSize.y; i++){
+        delete[] m_mapTab[i];
+        delete[] m_walkable[i];
+    }
+
+    delete[] m_walkable;
+    delete[] m_mapTab;
+    delete[] m_terrainsFrictions;
 }
 
 unsigned int Map::getTileSize() const{
@@ -360,7 +364,7 @@ void Map::LoadTiles(const std::string& l_path){
         TileInfo* tile = new TileInfo( m_context, "MapTile", tileId);
         m_tileSetCount++;
 
-        keystream >> tile->m_name >> tile->m_friction.x >> tile->m_friction.y >> tile->m_deadly;
+        keystream >> tile->m_name >> tile->m_friction.x >> tile->m_friction.y >> tile->m_deadly >> tile->m_walkable;
         if( !m_tileSet.emplace(tileId,tile).second){
             std::cout << "!DUPLICATE TILE TYPE: " << tile->m_name << std::endl;
             delete tile;
@@ -374,10 +378,27 @@ void Map::LoadNext(){
     m_loadNextMap = true;
 }
 
+
+
+void Map::UnBlockTile( unsigned int i, unsigned int j){
+    m_walkable[i][j] = true;
+}
+
+void Map::BlockTile(unsigned int i, unsigned int j){
+    m_walkable[i][j] = false;
+}
+
+bool Map::IsWalkable(unsigned int i, unsigned int j){
+    return m_walkable[i][j];
+}
+
+
 void Map::LoadBitMap( const std::string & l_path){
     #ifdef DEBUGG_RUN
     std::cout << "Map :: Loaded ::  " << l_path << std::endl;
 #endif
+
+    
 
 
         m_mapTab = MapLoader::getPixelInfo( Utils::GetWorkingDirectory() + l_path);
@@ -391,6 +412,14 @@ void Map::LoadBitMap( const std::string & l_path){
         m_maxMapSize.x = (float)m_mapSize[0];
         m_maxMapSize.y = (float)m_mapSize[1];
         int TileId = 0;
+
+        m_walkable = new bool*[m_maxMapSize.x];
+
+
+        for(unsigned  int i = 0; i <m_maxMapSize.x; i++){
+            m_walkable[i] = new bool[m_maxMapSize.y];
+        }
+
 
         for(unsigned  int i = 0; i <m_maxMapSize.x; i++){
             for(unsigned  int j = 0; j <m_maxMapSize.y; j++ ){
@@ -409,6 +438,8 @@ void Map::LoadBitMap( const std::string & l_path){
                      std::cout << "! Tile id(" << TileId << ") was not found in tileset." << std::endl;
                      continue;
                 }
+
+                m_walkable[i][j] = itr->second->m_walkable;
 
                 Tile* tile = new Tile();
                 tile->m_properties = itr->second;

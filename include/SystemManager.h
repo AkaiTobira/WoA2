@@ -26,7 +26,8 @@ public:
     virtual ~S_Base();
     bool AddEntity(const EntityId& l_entity);
     bool HasEntity(const EntityId& l_entity);
-    bool RemoveEntity(const EntityId& l_entity);
+    void SortEntities();
+    virtual bool RemoveEntity(const EntityId& l_entity) = 0;
     System GetId();
     bool FitsRequirements(const Bitmask& l_bits);
     void Purge();
@@ -35,6 +36,9 @@ public:
         const std::set<unsigned int>& participians,
         const EntityEvent& l_events
     ) = 0;
+
+    EntityList GiveList();
+
     virtual void HandleEvent(const EntityId& l_entity, const EntityEvent& l_event) = 0;
 protected:
     System m_id;
@@ -77,6 +81,10 @@ public:
     void RemoveEntity(const EntityId& l_entity);
     void PurgeEntities();
     void PurgeSystems();
+    bool CheckEntityLists();
+
+ EntityList GetList();
+    
 private:
     SystemContainer m_systems;
     EntityManager* m_entityManager;

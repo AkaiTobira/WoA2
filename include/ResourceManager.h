@@ -10,7 +10,7 @@
 
 enum class Direction
 {
-    None, Up, Down, Left, Right, LeftUp, LeftDown, RightUp, RightDown
+    None, Up, Down, Left, Right, LeftUp, LeftDown, RightUp, RightDown, ENDMARK
 
 };
 

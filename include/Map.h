@@ -12,8 +12,6 @@
 #include <unordered_set>
 #include <iostream>
 #include "iomanip"
-
-
 #include "Utilities.h"
 #include "StateManager.h"
 
@@ -123,6 +121,10 @@ class Map{
         void Update(float l_dT);
         void Draw();
         void LoadBitMap( const std::string & l_path);
+
+        void UnBlockTile( unsigned int i, unsigned int j);
+        void BlockTile(unsigned int i, unsigned int j);
+        bool IsWalkable(unsigned int i, unsigned int j);
  
     private:
 
@@ -165,6 +167,7 @@ class Map{
         
         sf::Vector2f * m_terrainsFrictions;
         unsigned short int ** m_mapTab;
+        bool** m_walkable;
 };
 
 #endif

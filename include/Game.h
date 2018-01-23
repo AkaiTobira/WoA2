@@ -1,10 +1,7 @@
 #ifndef GAME_H
 #define GAME_H
 
-
-
 #include "Window.h"
-//#include "Textbox.h"
 #include "EventManager.h"
 #include "StateManager.h"
 #include "ResourceManager.h"

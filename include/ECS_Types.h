@@ -7,7 +7,7 @@
 #include <unordered_map>
 #include <sstream>
 #include <SFML/Graphics.hpp>
-#include "Map.h"
+
 #include <queue>
 #include <utility>
 #include <stack>
@@ -40,20 +40,30 @@ enum class System
 
 enum class EntityEvent
 {
-    Spawned, 
+    
+    Colliding_Left,
     Moving_Left, 
+    Moving_LeftDown,
     Despawned, 
 
-    Colliding_X, 
+    Colliding_Right, 
     Moving_Right, 
+    Moving_RightUp,
     Elevation_Change, 
 
-    Colliding_Y,
+    Colliding_Up,
     Moving_Up, 
+    Moving_LeftUp,
     Became_Idle, 
 
+    Colliding_Down,
     Moving_Down,
+    Moving_RightDown,
     Began_Moving,
+
+    Spawned, 
+    ForceStop,
+    Colliding_Move,
 
     END
 };
@@ -91,12 +101,6 @@ class C_Drawable : public C_Base{
     private:
 };
 
-struct SE{
-    SE( Direction l_dir , const unsigned int d, const unsigned int t):m_dir(l_dir), m_vec(sf::Vector2u(d,t)){}
-    SE( Direction l_dir, sf::Vector2u d): m_dir(l_dir),m_vec(d){}
 
-    Direction m_dir;
-    sf::Vector2u m_vec;
-};
 
 #endif // ECSTYPES_H

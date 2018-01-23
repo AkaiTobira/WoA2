@@ -8,6 +8,7 @@ enum class EntityMessage {
         State_Changed, 
         Direction_Changed,  
         Switch_State, 
+        Spawned,
         Attack_Action, 
         Dead,
         Is_Idling

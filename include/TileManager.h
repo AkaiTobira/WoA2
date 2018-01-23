@@ -75,13 +75,14 @@ public:
     TileID m_id;
     std::string m_texture;
     bool m_deadly;
+    bool m_walkable;
 };
 
 struct Tile
 {
     TileInfo* m_properties;
     bool m_warp;
-
+   
     // Is the tile a warp.
 // Other flags unique to each tile.
 };

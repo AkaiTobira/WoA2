@@ -18,7 +18,7 @@ bool S_Base::AddEntity(const EntityId& l_entity)
         return false;
     }
     m_entities.emplace_back(l_entity);
-
+  //  SortEntities();
     return true;
 }
 
@@ -26,6 +26,9 @@ bool S_Base::HasEntity(const EntityId& l_entity)
 {
     return std::find(m_entities.begin(),m_entities.end(), l_entity) != m_entities.end();
 }
+
+/*
+
 bool S_Base::RemoveEntity(const EntityId& l_entity)
 {
     auto entity = std::find_if(m_entities.begin(), m_entities.end(),
@@ -41,6 +44,26 @@ bool S_Base::RemoveEntity(const EntityId& l_entity)
     return true;
 }
 
+*/
+
+EntityList S_Base::GiveList(){
+    return m_entities;
+}
+
+void S_Base::SortEntities(){
+
+    for( unsigned int i = 0; i < m_entities.size(); i++){
+        for( unsigned int j =0 ; j < m_entities.size()-1; j++){
+            if( m_entities[i] < m_entities[j] ){
+            auto temp = m_entities[i];
+            m_entities[i]= m_entities[j];
+            m_entities[j] = temp;
+            }
+        }
+    }
+
+}
+
 bool S_Base::FitsRequirements(const Bitmask& l_bits)
 {
     return std::find_if(m_requiredComponents.begin(),m_requiredComponents.end(), [&l_bits](Bitmask& b)
@@ -54,6 +77,55 @@ void S_Base::Purge()
     m_entities.clear();
 }
 
+
+EntityList SystemManager::GetList(){
+   // CheckEntityLists();
+    for( auto &system : m_systems){
+        return system.second->GiveList();
+    }
+
+}
+
+
+bool SystemManager::CheckEntityLists(){
+
+    EntityList l;
+    
+    bool flag = true;
+
+    int nm = 0;
+
+    for( auto &system : m_systems){
+        system.second->SortEntities();
+        nm++;
+        if( flag ){
+        l = system.second->GiveList();
+        flag = false;
+        }else{
+             EntityList l2 = system.second->GiveList();
+            if( l2.size() != l.size() ){ 
+                std::cout << "HELL AS FUCK" << std::endl;
+                return false;
+            }
+
+             for( unsigned int i = 0; i < l2.size(); i++ ){
+                if( l2[i] != l[i] ) { 
+                    std::cout << "HELL AS FUCK2 " << nm <<" "<< nm+1 << std::endl;
+             
+                    std::cout << "DIfrence : " << l2[i] << " " << l[i] << std::endl;
+             
+                    //  return false;
+                }
+             }
+
+             l = l2;
+
+        }
+    }
+
+    std::cout << " ALL FINE " << std::endl;
+    return true;
+}
 
 SystemManager::SystemManager(): m_entityManager(nullptr)
 {
@@ -106,15 +178,16 @@ void SystemManager::Update(float l_dT)
     {
      //   std::cout<<"SYSTSEM UPDATE " << m_entityManager->m_entities.size() << " BEGIN " << std::endl;
      
-  //   int i = 0;
+  
     // std::cout << "UPDATE :: " << std::endl;
         for(auto &itr : m_systems)
         {
-   //         std::cout << i++ << std::endl; 
+        //    std::cout << i++ << std::endl; 
             itr.second->Update(l_dT);
         }
     //    std::cout << "HANDLE EVENTS :: " << m_events.size() <<  std::endl;
         HandleEvents();
+    //    std::cout << "UPDATE :: Done" << std::endl;
     }
     
 
@@ -186,23 +259,31 @@ void SystemManager::HandleEvents()
 
 
 
-        clock_t t; 
-        clock_t t1;
-        t = clock();
-
+    //    clock_t t; 
+     //   clock_t t1;
+     //   t = clock();
         for( auto &event : m_events){
             EventID id = 0;
             while(event.second.ProcessEvents(id)){
 
                 for( auto &system : m_systems){
+
                     if(system.second->HasEntity(event.first))
                     {
- //                       std::cout << id << std::endl;
+
+                        if( id < (int)EntityEvent::END ){
                         events[id].insert(event.first);
+
+                        }else{
+                            std::cout <<" Get :: "<<  id << " :  " << event.first << std::endl;
+                        
+                    }
+
                     }
                 }
             }
         }
+
 /*
         unsigned int eventID = 0;
         for( auto &system : m_systems){
@@ -214,48 +295,56 @@ void SystemManager::HandleEvents()
 */
        // std::cout << (int)EntityEvent::Became_Idle << std::endl;
 
-        int eventID;
+        const unsigned int PER_PART = (unsigned int)EntityEvent::END/ 4;
+
+        unsigned int eventID;
         switch(m_partOfHandling){
             case 0:
-                
+        //       std::cout << "HANDle ::  1" << std::endl;
                 for( auto &system : m_systems){
                 
-                    for( eventID = 0; eventID < 3; eventID++){
+
+                    for( eventID = m_partOfHandling *  PER_PART; eventID < (m_partOfHandling+1)* PER_PART ; eventID++){
+     
                     //for( auto &event : events)
                         if( events[eventID].size() ){
                         system.second->HandleEvent(events[eventID], (EntityEvent)eventID);
-                  //      set.clear();
-                    //}
+                    //      set.clear();
+                        //}
+                        }
                     }
                 }
-                }
 
-                for( eventID = 0 ; eventID < 3; eventID++) 
+
+                for( eventID = m_partOfHandling *  PER_PART; eventID < (m_partOfHandling+1)* PER_PART ; eventID++)
                     if( events[eventID].size() )  events[eventID].clear();
 
             break;
             case 1:
 
-                
+            //    std::cout << "HANDle ::  2" << std::endl;
                 for( auto &system : m_systems){
             
-                    for( eventID = 3; eventID < 6; eventID++)
+                    for( eventID = m_partOfHandling *  PER_PART; eventID < (m_partOfHandling+1)* PER_PART ; eventID++){
      
                         if( events[eventID].size() ){
                         system.second->HandleEvent(events[eventID], (EntityEvent)eventID);
                 //}
                 }
             }
+                }
 
-            for( eventID = 3 ; eventID < 6; eventID++) 
+            for( eventID = m_partOfHandling *  PER_PART; eventID < (m_partOfHandling+1)* PER_PART ; eventID++)
                 if( events[eventID].size() ) events[eventID].clear();
             break;
             case 2:
             
-                
+            //    std::cout << "HANDle ::  3" << std::endl;
                 for( auto &system : m_systems){
         
-                    for( eventID = 6; eventID < 9; eventID++){
+                    
+                    for( eventID = m_partOfHandling *  PER_PART; eventID < (m_partOfHandling+1)* PER_PART ; eventID++)
+     {
             //for( auto &event : events)
 
                         if( events[eventID].size() ){
@@ -266,15 +355,19 @@ void SystemManager::HandleEvents()
                      }
                 }
             }
-                for( eventID = 6 ; eventID < 9; eventID++) 
+                
+                    for( eventID = m_partOfHandling *  PER_PART; eventID < (m_partOfHandling+1)* PER_PART ; eventID++)
+      
                     if( events[eventID].size() ) events[eventID].clear();
 
             break;
             case 3:
-                ;
+            //    std::cout << "HANDle ::  4" << std::endl;
                 for( auto &system : m_systems){
      
-                    for( eventID = 9 ; eventID < 11; eventID++){
+                    
+                    for( eventID = m_partOfHandling *  PER_PART; eventID < (m_partOfHandling+1)* PER_PART ; eventID++)
+     {
     
                         if( events[eventID].size() ){
                     //        std::cout << events[eventID].size() << "  " << eventID << " " << m_systems.size() << std::endl;
@@ -284,21 +377,30 @@ void SystemManager::HandleEvents()
                         }
                     }
                 }
-                for( eventID = 9 ; eventID < 11; eventID++)
+                
+                    for( eventID = m_partOfHandling *  PER_PART; eventID < (m_partOfHandling+1)* PER_PART ; eventID++)
+     
                     if( events[eventID].size() ) events[eventID].clear();
             break;
             case 4:
-            /*
-                unsigned int eventID = 3;
                 for( auto &system : m_systems){
-        
-                for( eventID ; eventID < 6; eventID++)
-            //for( auto &event : events)
-                    if(! event.empty() ){
-                    system.second->HandleEvent(event[eventID], (EntityEvent)eventID++);
-            //}
+     
+                    
+                    for( eventID = m_partOfHandling *  PER_PART; eventID < (int)EntityEvent::END; eventID++)
+     {
+    
+                        if( events[eventID].size() ){
+                    //        std::cout << events[eventID].size() << "  " << eventID << " " << m_systems.size() << std::endl;
+
+                            system.second->HandleEvent(events[eventID], (EntityEvent)eventID);
+                //}
+                        }
+                    }
                 }
-                */
+                
+                    for( eventID = m_partOfHandling *  PER_PART; eventID < (int)EntityEvent::END ; eventID++)
+     
+                    if( events[eventID].size() ) events[eventID].clear();
             break;
             case 5:
                 m_partOfHandling = -1;
@@ -348,7 +450,7 @@ void SystemManager::HandleEvents()
 
      
 
-        t1 = clock();
+    //    t1 = clock();
    //     std::cout << "HANDLE EVENTS :: " << m_events.size() <<  std::endl;
      //   std::cout << "HANDLE EVENT :" <<  std::fixed << std::setprecision(7) <<  static_cast<float>( static_cast<float>(t1-t) /CLOCKS_PER_SEC ) << std::endl;
         

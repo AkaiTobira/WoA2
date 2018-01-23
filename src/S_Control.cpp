@@ -13,11 +13,13 @@ S_Control::S_Control(SystemManager* l_systemMgr)
 
 
 
-void S_Control::MoveEntity(const EntityId& l_entity,const Direction& l_dir)
-    {
-    C_Movable* mov = m_systemManager->GetEntityManager()->
-    GetComponent<C_Movable>(l_entity, Component::Movable);
-    mov->Move(l_dir);
+void S_Control::MoveEntity(const EntityId& l_entity,const Direction& l_dir){
+
+
+  //  mov->Move(l_dir);
+
+
+
 }
 
 
@@ -85,7 +87,7 @@ bool S_Control::FindUnit( sf::Vector2f & l_x, sf::Vector2f & l_y ){
         C_Position* position = m_systemManager->GetEntityManager()->
         GetComponent<C_Position>(entity,Component::Position);
         
-        auto pos = position->GetPosition();
+        auto pos = position->GetFPosition();
     
         C_SpriteSheet* sp = m_systemManager->GetEntityManager()->
         GetComponent<C_SpriteSheet>(entity,Component::SpriteSheet);
@@ -145,7 +147,7 @@ bool S_Control::FindUnit( float l_x, float l_y ){
     C_Position* position = m_systemManager->GetEntityManager()->
     GetComponent<C_Position>(entity,Component::Position);
     
-    auto pos = position->GetPosition();
+    auto pos = position->GetFPosition();
 
     C_SpriteSheet* sp = m_systemManager->GetEntityManager()->
     GetComponent<C_SpriteSheet>(entity,Component::SpriteSheet);
@@ -197,53 +199,93 @@ void S_Control::ReleaseUnits( ){
     }
 }
 
+unsigned int S_Control::IsActive( const EntityId& l_entity){
+        C_Controller* contr = m_systemManager->GetEntityManager()->
+        GetComponent< C_Controller>(l_entity, Component::Controller);
+        if( contr->GetControllingPerson() == ControllingPerson::Player){
+            return contr->IsActive();
+        }
+        return false;
+}
 
 void S_Control::HandleEvent(const EntityId& l_entity,const EntityEvent& l_event)
 { 
 
     //OBSTAWIAM ZE TO BEDE EDYTOWAC
-switch(l_event){
-case EntityEvent::Moving_Left:
-    MoveEntity(l_entity,Direction::Left); 
-break;
-case EntityEvent::Moving_Right:
-    MoveEntity(l_entity, Direction::Right); 
-break;
-case EntityEvent::Moving_Up:
-    MoveEntity(l_entity, Direction::Up); 
-break;
-case EntityEvent::Moving_Down:
-    MoveEntity(l_entity, Direction::Down); 
-break;
-default:
-break;
+
+    /*
+
+    switch(l_event){
+    case EntityEvent::Moving_Left:
+        MoveEntity(l_entity,Direction::Left); 
+    break;
+    case EntityEvent::Moving_Right:
+        MoveEntity(l_entity, Direction::Right); 
+    break;
+    case EntityEvent::Moving_Up:
+        MoveEntity(l_entity, Direction::Up); 
+    break;
+    case EntityEvent::Moving_Down:
+        MoveEntity(l_entity, Direction::Down); 
+    break;
+    default:
+    break;
+    }
+
+    switch(l_event){
+        
+    }
+    */
+
 }
+
+bool S_Control::RemoveEntity(const EntityId& l_entity)
+{
+
+    C_Controller* contr = m_systemManager->GetEntityManager()->
+    GetComponent< C_Controller>(l_entity, Component::Controller);
+    contr->SetActive(false);
+
+
+    for( auto it = m_entities.begin(); it != m_entities.end(); it++){
+        if( l_entity == *it ){
+            m_entities.erase(it);
+            return true;
+        }
+    }
+    return false;
 }
+
+
 
 void S_Control::HandleEvent(
     const std::set<unsigned int>& participians,
     const EntityEvent& l_events
 ){
+
+    
+
+
         switch(l_events){
-        case EntityEvent::Moving_Left:
-            for( auto l_entity : participians ){
-                MoveEntity(l_entity, Direction::Left);
-        //        std::cout << "GET LEFT " << std::endl;
+            case EntityEvent::Colliding_Move:
+            {
+                EntityManager* entities = m_systemManager->GetEntityManager();
+
+                for( auto reciver : participians){
+                    C_Controller* contr = m_systemManager->GetEntityManager()->GetComponent< C_Controller>(reciver, Component::Controller);
+                    if( contr->IsUnit() ){
+
+                            std::cout << reciver << " " << std::endl; 
+
+                            m_systemManager->GetSystem<S_Movement>(System::Movement)->CallAStarAgain(reciver);
+
+                        }
+                    }
             }
-        break;
-        case EntityEvent::Moving_Right:
-            for( auto l_entity : participians )
-                MoveEntity(l_entity, Direction::Right);
-        break;
-        case EntityEvent::Moving_Down:
-            for( auto l_entity : participians )
-                MoveEntity(l_entity, Direction::Down);
-        break;
-        case EntityEvent::Moving_Up:
-            for( auto l_entity : participians )
-                MoveEntity(l_entity, Direction::Up);
-        break;
-        default:
-        break;        
+            break; 
+            default:
+            break; 
         }
+        
+
 }

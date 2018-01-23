@@ -20,11 +20,13 @@ public:
         const EntityEvent& l_events
     );
 
-
+    bool RemoveEntity(const EntityId& l_entity);
 
 private:
     void SetSheetDirection(const EntityId& l_entity, const Direction& l_dir);
     void SortDrawables();
+
+    sf::Font m_font;
 };
 
 

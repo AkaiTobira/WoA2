@@ -14,6 +14,7 @@
 #include <SFML/System.hpp>
 #include "Window.h"
 #include "Utilities.h"
+//#include <stdio.h>
 
 class FPS
 {

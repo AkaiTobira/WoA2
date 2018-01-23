@@ -11,6 +11,7 @@ S_Collision::S_Collision(SystemManager* l_systemMgr)
     m_requiredComponents.push_back(req);
     req.Clear();
     m_gameMap = nullptr;
+
 }
 
 S_Collision::~S_Collision(){
@@ -20,7 +21,7 @@ S_Collision::~S_Collision(){
       delete[] m_squares[i];
     }
 
-    delete m_squares;
+    delete[] m_squares;
       
 }
 
@@ -28,8 +29,8 @@ void S_Collision::SetMap(Map* l_map){
 
     m_gameMap = l_map; 
 
-    auto mapSize = m_gameMap->GetMapSize();
-    m_setsSizes = { static_cast<unsigned int>(((mapSize.x*32)/SQUARE_SIZE)+1) , static_cast<unsigned int>(((mapSize.y*32)/SQUARE_SIZE)+1) };
+    mapSize = m_gameMap->GetMapSize();
+    m_setsSizes = { static_cast<unsigned int>(((mapSize.x*32)/SQUARE_SIZE)+2) , static_cast<unsigned int>(((mapSize.y*32)/SQUARE_SIZE)+2) };
 
     m_squares = new std::set<unsigned int>*[m_setsSizes.y];
     for( unsigned int i = 0 ; i < m_setsSizes.y; i++)
@@ -48,19 +49,21 @@ void S_Collision::Update(float l_dT __attribute((unused))){
     EntityManager* entities = m_systemManager->GetEntityManager();
 
     for(auto &entity : m_entities){
-
         C_Position* position = entities->GetComponent<C_Position>(entity, Component::Position);
-            if( position->GetTargetPosition() == position->GetPosition()){
+        C_Collidable* collidable = entities->GetComponent<C_Collidable>(entity, Component::Collidable);
+    
+
+        if( !position->isMoving() or position->isMoving() ){
+            collidable->SetPosition(position->GetFPosition());
             continue;
         }
 
 
-        C_Collidable* collidable = entities->GetComponent<C_Collidable>(entity, Component::Collidable);
-    
-        collidable->SetPosition(position->GetPosition());
+        
+        collidable->SetPosition(position->GetFPosition());
         collidable->ResetCollisionFlags();
 
-        ReplaceUnit(position->GetPosition().x, position->GetPosition().y, entity);
+        ReplaceUnit(position->GetFPosition().x, position->GetFPosition().y, entity);
    }
 
         //    CheckOutOfBounds(position, collidable);
@@ -73,9 +76,8 @@ void S_Collision::Update(float l_dT __attribute((unused))){
 }
 
 
-void S_Collision::ReplaceUnit(
-    float l_x, float l_y, unsigned int& l_entity
-){
+
+void S_Collision::ReplaceUnit(float l_x, float l_y, unsigned int& l_entity){
 
     const float offsetX = 32.0f;
     const float offsetY = 32.0f;
@@ -102,6 +104,48 @@ void S_Collision::ReplaceUnit(
     }
 }
 
+bool S_Collision::RemoveEntity(const EntityId& l_entity){
+
+    ReleaseUnit(l_entity);
+
+    for( auto it = m_entities.begin(); it != m_entities.end(); it++){
+        if( l_entity == *it ){
+            m_entities.erase(it);
+            return true;
+        }
+    }
+    return false;
+}
+
+void S_Collision::ReleaseUnit(const unsigned int & l_entity){
+    EntityManager* entities = m_systemManager->GetEntityManager();
+
+    C_Position* position  = entities->GetComponent<C_Position>(l_entity , Component::Position);
+
+
+    sf::Vector2u v = {
+        static_cast<unsigned int>(position->GetFPosition().x/SQUARE_SIZE) , 
+        static_cast<unsigned int>(position->GetFPosition().y/SQUARE_SIZE) 
+    };
+
+    if( v.x == 0 ){ v.x = 1;}
+    if( v.y == 0 ){ v.y = 1;}
+
+    if( v.x == m_setsSizes.x ){ v.x = m_setsSizes.x -1;}
+    if( v.y == m_setsSizes.y ){ v.y = m_setsSizes.y -1;}
+
+
+
+    for( unsigned int i = v.x - 1 ; i<= v.x +1; i++){
+        for( unsigned int j = v.y - 1; j <= v.y+1; j++){
+
+            auto it = m_squares[i][j].find(l_entity);
+            if( it != m_squares[i][j].end() ){
+                m_squares[i][j].erase(it);
+            }
+        }
+    }
+}
 
 void S_Collision::DeleteFromSquare( sf::Vector2u l_set, unsigned int & l_entity){
     if( l_set.x == 0 ){ l_set.x = 1;}
@@ -112,6 +156,7 @@ void S_Collision::DeleteFromSquare( sf::Vector2u l_set, unsigned int & l_entity)
 
     for( unsigned int i = l_set.x - 1 ; i<= l_set.x +1; i++){
         for( unsigned int j = l_set.y - 1; j <= l_set.y+1; j++){
+
             auto it = m_squares[i][j].find(l_entity);
             if( it != m_squares[i][j].end() ){
                 m_squares[i][j].erase(it);
@@ -121,10 +166,7 @@ void S_Collision::DeleteFromSquare( sf::Vector2u l_set, unsigned int & l_entity)
 }
 
 
-
-
-void S_Collision::SwitchSquare(sf::Vector2f l_pos, sf::Vector2u l_set, unsigned int & l_entity)
-{
+void S_Collision::SwitchSquare(sf::Vector2f l_pos, sf::Vector2u l_set, unsigned int & l_entity){
 
     const float offsetX = 32.0f;
     const float offsetY = 32.0f;
@@ -152,8 +194,8 @@ void S_Collision::EntityCollisions(){
 
     EntityManager* entities = m_systemManager->GetEntityManager();
 
-    for( unsigned int i = 0; i < m_setsSizes.x; i++){
-        for( unsigned int j = 0; j < m_setsSizes.y; j++){
+    for( unsigned int i = 0; i < m_setsSizes.y; i++){
+        for( unsigned int j = 0; j < m_setsSizes.x; j++){
      
             if( !m_squares[i][j].size() ){continue;}
 
@@ -163,18 +205,109 @@ void S_Collision::EntityCollisions(){
                     C_Position* position  = entities->GetComponent<C_Position>(*itr , Component::Position);
                     C_Position* position2 = entities->GetComponent<C_Position>(*itr2, Component::Position);
 
+                    if( i == 0 ){
 
-                    if( (position ->GetTargetPosition() == position ->GetPosition())
-                        and 
-                        (position2->GetTargetPosition() == position2->GetPosition())
-                    ){
+                        if( position->GetFPosition().x < 32  ){
+                            
+                            //std::cout << i << " " << j << std::endl;
+
+                            m_systemManager->AddEvent(
+                                *itr,
+                                (EventID)EntityEvent::Colliding_Left);
+                             }
+                            
+                        
+                            
+                        if( position2->GetFPosition().x < 32 ){
+                            
+                            //std::cout << i << " " << j << std::endl;
+
+                            m_systemManager->AddEvent(
+                                *itr2,
+                                (EventID)EntityEvent::Colliding_Left);
+                             }
+                            
+                        
+
+
+                    }
+
+                    if( j == 0){
+
+                        if( position->GetFPosition().y < 32 ){
+                            //std::cout << i << " " << j << std::endl;
+                            m_systemManager->AddEvent(
+                                *itr,
+                                (EventID)EntityEvent::Colliding_Up);
+                             }
+                            
+                        
+                            
+                        if( position2->GetFPosition().y < 32 ){
+                           // std::cout << i << " " << j << std::endl;
+                            m_systemManager->AddEvent(
+                                *itr2,
+                                (EventID)EntityEvent::Colliding_Up);
+                             }
+                            
+                        
+
+
+                    }
+
+                    if( i == m_setsSizes.x-1){
+                        if( position->GetFPosition().x > mapSize.x-32 ){
+                            //std::cout << i << " " << j << std::endl;
+                            m_systemManager->AddEvent(
+                                *itr,
+                                (EventID)EntityEvent::Colliding_Right);
+                             }
+                            
+                        
+                            
+                        if( position2->GetFPosition().x > mapSize.x-32 ){
+                           // std::cout << i << " " << j << std::endl;
+                            m_systemManager->AddEvent(
+                                *itr2,
+                                (EventID)EntityEvent::Colliding_Right);
+                             }
+                            
+                        
+                    }
+
+                    if( j == m_setsSizes.y-1){
+
+                        if( position->GetFPosition().y > mapSize.y-32 ){
+                            //std::cout << i << " " << j << std::endl;
+                            m_systemManager->AddEvent(
+                                *itr,
+                                (EventID)EntityEvent::Colliding_Down);
+                             }
+                            
+                        
+                            
+                        if( position2->GetFPosition().y > mapSize.y-32 ){
+                            //std::cout << i << " " << j << std::endl;
+                            m_systemManager->AddEvent(
+                                *itr2,
+                                (EventID)EntityEvent::Colliding_Down);
+                             }
+                            }
+                            
+
+                    if( !position->isMoving()  and  !position2->isMoving() )
+                    {
+
+
                         continue;
                     }
 
 
-                    int x = position2->GetPosition().x - position->GetPosition().x;
+
+
+                    int x = position2->GetFPosition().x - position->GetFPosition().x;
                     x = x*x; 
-                    int y = position2->GetPosition().y - position->GetPosition().y;
+                    int y = position2->GetFPosition().y - position->GetFPosition().y;
                     y = y*y;
 
                     const int DISTANCE = 84*84;
@@ -185,14 +318,177 @@ void S_Collision::EntityCollisions(){
                         C_Collidable* collidable2 = entities->GetComponent<C_Collidable>(*itr2, Component::Collidable);
 
                         if(collidable1->GetCollidable().intersects(collidable2->GetCollidable())){
-                            std::cout << "COLLISION DETECTED" << std::endl;
+                        //     std::cout << "We get Collision" << std::endl;
+
+                            /*
+
+                            std::cout << " Speed 1 " <<  position->GetVelocity().x << " " <<  position->GetVelocity().y << std::endl;
+                            std::cout << " Position 1 " << position->GetFPosition().x + position->GetVelocity().x <<
+                            " " << position->GetFPosition().x + position->GetVelocity().x << std::endl;
+                            
+                            std::cout << " Speed 2 " << position2->GetVelocity().x << " " << position2->GetVelocity().y << std::endl;
+                            std::cout << " Position 2 " << position2->GetFPosition().x + position2->GetVelocity().x <<
+                            " " << position2->GetFPosition().x + position2->GetVelocity().x << std::endl;
+                            
+
+                            if( ! position->isChanging() or  position->IsPaused() ){
+                                    position2->Pause();
+                                    collidable2->SetPosition(position2->GetFPosition());
+                            }else if( ! position2->isChanging() or position2->IsPaused() ){
+                                    position->Pause();
+                                    collidable1->SetPosition(position->GetFPosition());
+                            }else{
+                            
+
+                                    float x = position2->GetFPosition().x - position->GetFPosition().x;
+                                        x = x*x; 
+                                    float y = position2->GetFPosition().y - position->GetFPosition().x;
+                                        y = y*y;
+
+                                    float sum = x + y;
+
+                                    if( sum <= 48 ){
+
+                                        position2->Pause();
+                                        collidable2->SetPosition(position->GetFPosition());
+
+                                    }
+
+                            */
+                                //if( position->GetFPosition)
+
+                                /*
+
+                                    if(  MovingTheSameDirection(position->GetVelocity(), position2->GetVelocity() )){
+
+
+                                    int x = position2->GetFPosition().x - 32;
+                                        x = x*x; 
+                                    int y = position2->GetFPosition().y - 32;
+                                        y = y*y;
+
+                                    int sum = x + y;
+
+                                        x = position->GetFPosition().x - 32;
+                                        y = position->GetFPosition().y - 32;
+
+                                        x*=x;
+                                        y*=y;
+
+                                    if( sum > x+y ){
+                                        position2->Pause();
+                                        collidable2->SetPosition(position2->GetFPosition());
+                                    }else{
+                                        position->Pause();
+                                        collidable1->SetPosition(position->GetFPosition());
+                                    }
+
+                            //        position2->Pause();
+                            ///        collidable2->SetPosition(position2->GetFPosition());
+
+                                    }else{
+
+
+                                    }
+
+
+                                    */
+                         //   }
+
+
+
+                            /*
+
+                            if( position->isChanging() and position2->isChanging() ){
+ 
+                                /*
+
+                                if( position->IsPaused() ){
+                                    position2->Pause();
+                                    collidable2->SetPosition(position2->GetFPosition());
+                                }else if( position2->IsPaused() ){
+                                    position->Pause();
+                                    collidable1->SetPosition(position->GetFPosition());
+                                }else{
+                                    position->Pause();
+                                    collidable1->SetPosition(position->GetFPosition());
+                                    
+                                }
+                                
+                                */
+
+                                //else{
+                                //    position->Pause();
+                                //    collidable1->SetPosition(position->GetFPosition());
+                                //}
+ 
+                               // if( ! MovingTheSameDirection(position->GetVelocity(), position2->GetVelocity() )){
+                            //        position2->Pause();
+                             //   }
+
+
+                           // }else if( position->isChanging() ){
+                             //   position->Pause();
+                            //    collidable1->SetPosition(position->GetFPosition());
+        
+                          //  }else if( position2->isChanging() ){
+                                //position2->Pause();
+                                //collidable2->SetPosition(position2->GetFPosition());
+        
+                              //  }*/
+                            }
                         }
                     }
                 }
             }
-        }
+        
     }    
 }
+
+bool S_Collision::MovingTheSameDirection( sf::Vector2f& p1, sf::Vector2f& p2 ){
+    if( p1.x > 0 ){
+        if( p2.x == 0 ){
+            return false;
+        }else if( p2.x < 0){
+            return false;
+        }
+    } else if( p1.x == 0 ){
+        if( p2.x < 0 ){
+            return false;
+        }else if( p2.x > 0){
+            return false;
+        }
+    } else if( p1.x < 0 ){
+        if( p2.x == 0 ){
+            return false;
+        }else if( p2.x > 0){
+            return false;
+        }
+    } 
+
+    if( p1.y > 0 ){
+        if( p2.y == 0 ){
+            return false;
+        }else if( p2.y < 0){
+            return false;
+        }
+    } else if( p1.y == 0 ){
+        if( p2.y < 0 ){
+            return false;
+        }else if( p2.y > 0){
+            return false;
+        }
+    } else if( p1.y < 0 ){
+        if( p2.y == 0 ){
+            return false;
+        }else if( p2.y > 0){
+            return false;
+        }
+    } 
+
+    return true;
+}
+
 
 void S_Collision::PlaceUnit( float l_x, float l_y, unsigned int l_entity){
     EntityManager* entities = m_systemManager->GetEntityManager();
@@ -214,7 +510,7 @@ void S_Collision::PlaceUnit( float l_x, float l_y, unsigned int l_entity){
             C_Position* position = entities->GetComponent<C_Position>(l_entity, Component::Position);
             C_Collidable* collidable = entities->GetComponent<C_Collidable>(l_entity, Component::Collidable);
     
-            collidable->SetPosition(position->GetPosition());
+            collidable->SetPosition(position->GetFPosition());
             collidable->ResetCollisionFlags();
             m_squares[i][j].insert(l_entity);
 
@@ -285,7 +581,7 @@ void S_Collision::MapCollisions(
                     resolve = -((EntityAABB.left + EntityAABB.width) -col.m_tileBounds.left);
                 }
             l_pos->MoveBy(resolve, 0);
-            l_col->SetPosition(l_pos->GetPosition());
+            l_col->SetPosition(l_pos->GetFPosition());
             m_systemManager->AddEvent(l_entity,
                 (EventID)EntityEvent::Colliding_X);
                 l_col->CollideOnX();
@@ -296,7 +592,7 @@ void S_Collision::MapCollisions(
                     resolve = -((EntityAABB.top + EntityAABB.height) - col.m_tileBounds.top);
                 }
             l_pos->MoveBy(0, resolve);
-            l_col->SetPosition(l_pos->GetPosition());
+            l_col->SetPosition(l_pos->GetFPosition());
             m_systemManager->AddEvent(l_entity,
                 (EventID)EntityEvent::Colliding_Y);
                 l_col->CollideOnY();
@@ -309,23 +605,23 @@ void S_Collision::MapCollisions(
 void S_Collision::CheckOutOfBounds(C_Position* l_pos,C_Collidable* l_col)
     {
         unsigned int TileSize = m_gameMap->getTileSize();
-        if (l_pos->GetPosition().x < 0){
-            l_pos->SetPosition(0.0f, l_pos->GetPosition().y);
-            l_col->SetPosition(l_pos->GetPosition());
-        } else if (l_pos->GetPosition().x >m_gameMap->GetMapSize().x * TileSize){
+        if (l_pos->GetFPosition().x < 0){
+            l_pos->SetPosition(0.0f, l_pos->GetFPosition().y);
+            l_col->SetPosition(l_pos->GetFPosition());
+        } else if (l_pos->GetFPosition().x >m_gameMap->GetMapSize().x * TileSize){
         
-            l_pos->SetPosition(m_gameMap->GetMapSize().x * TileSize,l_pos->GetPosition().y);
-            l_col->SetPosition(l_pos->GetPosition());
+            l_pos->SetPosition(m_gameMap->GetMapSize().x * TileSize,l_pos->GetFPosition().y);
+            l_col->SetPosition(l_pos->GetFPosition());
         }
 
-        if (l_pos->GetPosition().y < 0){
+        if (l_pos->GetFPosition().y < 0){
             
-            l_pos->SetPosition(l_pos->GetPosition().x, 0.0f);
-            l_col->SetPosition(l_pos->GetPosition());
-        } else if (l_pos->GetPosition().y > m_gameMap->GetMapSize().y * TileSize){
+            l_pos->SetPosition(l_pos->GetFPosition().x, 0.0f);
+            l_col->SetPosition(l_pos->GetFPosition());
+        } else if (l_pos->GetFPosition().y > m_gameMap->GetMapSize().y * TileSize){
             
-            l_pos->SetPosition(l_pos->GetPosition().x,m_gameMap->GetMapSize().y * TileSize);
-            l_col->SetPosition(l_pos->GetPosition());
+            l_pos->SetPosition(l_pos->GetFPosition().x,m_gameMap->GetMapSize().y * TileSize);
+            l_col->SetPosition(l_pos->GetFPosition());
         }
     }
 

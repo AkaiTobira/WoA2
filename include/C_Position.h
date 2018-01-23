@@ -2,28 +2,37 @@
 #define C_POSITION_H
 
 #include "ECS_Types.h"
+#include <iostream>
 
 
 class C_Position: public C_Base
 {
 public:
-    C_Position(): C_Base(Component::Position), m_elevation(0) {};
+    C_Position(): 
+        C_Base(Component::Position), 
+        m_elevation(0),
+        m_moving(false), 
+        m_movePause(false) {};
+
     ~C_Position() {};
 
     void ReadIn(std::stringstream& l_stream)
     {
-        l_stream >> m_position.x >> m_position.y >> m_elevation;
-        m_targetPosition = m_position;
-        flag = false;
+        l_stream >> m_fPosition.x >> m_fPosition.y >> m_elevation;
+
+        m_uPosition = sf::Vector2u( m_fPosition.x/Tile_Size, m_fPosition.y/Tile_Size);
+        
+        m_uPositionOld = m_uPosition;
+        m_fPositionOld = m_fPosition;
     }
 
-    const sf::Vector2f& GetPosition(){
-        return m_position;
+    const sf::Vector2f& GetFPosition(){
+        return m_fPosition;
     }
 
     const sf::Vector2f& GetOldPosition()
     {
-        return m_positionOld;
+        return m_fPositionOld;
     }  
 
     unsigned int GetElevation()
@@ -31,17 +40,31 @@ public:
         return m_elevation;
     }
 
+    const sf::Vector2u& GetUPosition(){
+        return m_uPosition;
+    }
+
+
     void SetPosition(float l_x, float l_y)
     {
-        m_positionOld = m_position;
-        m_position = sf::Vector2f(l_x,l_y);
+        m_fPositionOld = m_fPosition;
+        m_fPosition = sf::Vector2f( l_x         ,  l_y          );
+
+ 
+        m_uPositionOld = m_uPosition;
+        m_uPosition = sf::Vector2u( m_fPosition.x/Tile_Size, m_fPosition.y/Tile_Size);
+
+ 
     }
 
     void SetPosition(const sf::Vector2f& l_vec)
     {
-        m_positionOld = m_position;
-        m_position = l_vec;
-    }
+        m_fPositionOld = m_fPosition;
+        m_fPosition = l_vec;
+
+        m_uPositionOld = m_uPosition;
+        m_uPosition = sf::Vector2u( static_cast<unsigned int>(m_fPosition.x/Tile_Size), static_cast<unsigned int>(m_fPosition.y/Tile_Size ));
+  }
 
     void SetElevation(unsigned int l_elevation)
     {
@@ -50,64 +73,78 @@ public:
 
     void MoveBy(float l_x, float l_y)
     {
-        m_positionOld = m_position;
-        m_position += sf::Vector2f(l_x,l_y);
+        if( !m_movePause ){
+            m_fPositionOld = m_fPosition;
+            m_fPosition += sf::Vector2f(l_x,l_y);
+
+            m_uPositionOld = m_uPosition;
+            m_uPosition = sf::Vector2u( static_cast<unsigned int>(m_fPosition.x/Tile_Size), static_cast<unsigned int>(m_fPosition.y/Tile_Size)) ;
+            }
     }
     
     void MoveBy(const sf::Vector2f& l_vec)
     {
-        
-        m_positionOld = m_position;
-        m_position += l_vec;
+        if( !m_movePause ){
+
+            m_fPositionOld = m_fPosition;
+            m_fPosition += l_vec;
+
+            m_uPositionOld = m_uPosition;
+            m_uPosition = sf::Vector2u( m_fPosition.x/Tile_Size, m_fPosition.y/Tile_Size);
+
+       }
     }
 
-    sf::Vector2f& GetTargetPosition(){
-        return m_targetPosition;
+    sf::Vector2u& GetBlockTile(){
+        return m_uPosition;
     }
 
-    void SetTargetPosition(float l_x, float l_y){
-        m_targetPosition = sf::Vector2f( l_x, l_y);
+    sf::Vector2u& GetBlockTileOld(){
+        return m_uPositionOld;
     }
 
-    void SetTargetPosition(sf::Vector2f& l_vec){
-        m_targetPosition = l_vec;
+    bool BlockChanged(){
+        return m_uPosition != m_uPositionOld;
     }
 
-    void SetTempTargetPosition(sf::Vector2u& l_vec){
-        m_tempTargetPosition = l_vec;
+    bool isMoving(){
+        return m_moving;
     }
 
-    sf::Vector2u& GetTempTargetPosition(){
-        return m_tempTargetPosition;
+    void StopMoving(){
+        m_moving = false;
     }
 
-    Direction GetNextStep(){
-        SE temp = m_steps.top();
-        m_tempTargetPosition = temp.m_vec;
-        m_steps.pop();
-        return temp.m_dir;
+    void Moving(){
+        m_moving = true;
     }
 
-    void SetStackSteps(std::stack<SE>& l_steps){
-        m_steps = l_steps;
+    void Play(){
+        m_movePause = false;
     }
 
-
-    bool MoreSteps(){
-        return m_steps.size();
+    void Pause(){
+        m_movePause = true;
     }
 
-    bool flag;
+    bool IsPaused(){
+        return m_movePause;
+    }
+
 private:
-    sf::Vector2f m_position;
-    sf::Vector2f m_positionOld;
+    const int Tile_Size = 32;
 
-    sf::Vector2u m_tempTargetPosition;
-    sf::Vector2f m_targetPosition;
+    sf::Vector2f m_fPosition;
+    sf::Vector2f m_fPositionOld;
+ 
+    sf::Vector2u m_uPosition; // Is also block position
+    sf::Vector2u m_uPositionOld;
+
     unsigned int m_elevation;
+    unsigned int m_pauseCounter;
 
-    std::stack<SE> m_steps;
-    
+    bool m_moving;
+    bool m_movePause;
 };
 
 #endif // C_POSITION_H

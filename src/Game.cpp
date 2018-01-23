@@ -43,7 +43,13 @@ void Game::Update()
 
 }
 
-
+/*
+src/S_Movement.cpp:631:0: warning: ignoring #pragma omp parallel [-Wunknown-pragmas]
+     #pragma omp parallel for
+ 
+src/S_Movement.cpp:659:0: warning: ignoring #pragma omp critical [-Wunknown-pragmas]
+     #pragma omp critical
+*/
 
 Window * Game::GetWindow()
 {

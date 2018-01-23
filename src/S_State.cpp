@@ -8,7 +8,7 @@ S_State::S_State(SystemManager* l_systemMgr)
     m_systemManager->GetMessageHandler()->Subscribe(EntityMessage::Move,this);
     m_systemManager->GetMessageHandler()->Subscribe(EntityMessage::Switch_State,this);
     m_systemManager->GetMessageHandler()->Subscribe(EntityMessage::Is_Idling,this);
- //   m_systemManager->GetMessageHandler()->Subscribe(EntityMessage::Spawned, this);
+    m_systemManager->GetMessageHandler()->Subscribe(EntityMessage::Spawned, this);
 }
 
 
@@ -34,7 +34,6 @@ void S_State::Update(float l_dT __attribute((unused))){
 }
 
 
-
 void S_State::Notify(const Message& l_message){
 
     std::set<unsigned int> movRight;
@@ -53,6 +52,7 @@ void S_State::Notify(const Message& l_message){
                 {
            //     std::cout << "ENTITY MOVE :: " << reciver << std::endl; 
                 C_State* state = m_systemManager->GetEntityManager()->GetComponent<C_State>(reciver,Component::State);
+                
                 if (state->GetState() == EntityState::Dying){ continue; }
                 EntityEvent e;
                 if (l_message.m_int == (int)Direction::Up){
@@ -67,8 +67,24 @@ void S_State::Notify(const Message& l_message){
                     e = EntityEvent::Moving_Left;
       //              movLeft.push_back(reciver);
      //               moving.push_back(reciver);
-                } else if (l_message.m_int == (int)Direction::Right){
+                } else if (l_message.m_int == (int)Direction::RightUp){
+                    e = EntityEvent::Moving_RightUp;
+     //               movRight.push_back(reciver);
+      //              moving.push_back(reciver);
+                }else if (l_message.m_int == (int)Direction::RightDown){
+                    e = EntityEvent::Moving_RightDown;
+     //               movRight.push_back(reciver);
+      //              moving.push_back(reciver);
+                }else if (l_message.m_int == (int)Direction::LeftUp){
+                    e = EntityEvent::Moving_LeftUp;
+     //               movRight.push_back(reciver);
+      //              moving.push_back(reciver);
+                }else if (l_message.m_int == (int)Direction::Right){
                     e = EntityEvent::Moving_Right;
+     //               movRight.push_back(reciver);
+      //              moving.push_back(reciver);
+                }else if (l_message.m_int == (int)Direction::LeftDown){
+                    e = EntityEvent::Moving_LeftDown;
      //               movRight.push_back(reciver);
       //              moving.push_back(reciver);
                 }
@@ -88,10 +104,10 @@ void S_State::Notify(const Message& l_message){
 
         break;
 
-   //     case EntityMessage::Spawned:
+        case EntityMessage::Spawned:
             // Narazie mysl ....
-
-     //   break;
+            std::cout << "GET SPAWN" << std::endl;
+        break;
         default:
         break;
 
@@ -105,6 +121,17 @@ void S_State::Notify(const Message& l_message){
 
 }
 
+
+bool S_State::RemoveEntity(const EntityId& l_entity){
+
+    for( auto it = m_entities.begin(); it != m_entities.end(); it++){
+        if( l_entity == *it ){
+            m_entities.erase(it);
+            return true;
+        }
+    }
+    return false;
+}
 
 
 void S_State::KeepState(const EntityId& l_entity,const EntityState& l_state ){
@@ -135,8 +162,10 @@ void S_State::HandleEvent(
             ChangeState(participians,EntityState::Idle,false );
         break;
         case EntityEvent::Spawned:
-            for( auto reciver : participians )
+            for( auto reciver : participians ){
+                m_systemManager->AddEvent(reciver, (EventID)EntityEvent::ForceStop   );
                 m_systemManager->AddEvent(reciver, (EventID)EntityEvent::Became_Idle );
+            }
         break;
         default:
         break;

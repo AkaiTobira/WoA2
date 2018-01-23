@@ -1,5 +1,6 @@
 #include "State_Game.h"
 #include <iostream>
+#include <stdio.h>
 
 
 State_Game::State_Game(StateManager * l_stateManager) : BaseState(l_stateManager){
@@ -58,6 +59,11 @@ void State_Game::OnCreate(){
     evMgr-> AddCallback(StateType::Game, "EntityMove", &State_Game::MoveEntity ,this);
     evMgr-> AddCallback(StateType::Game, "Key_S", &State_Game::SpawnEntity ,this);
     evMgr-> AddCallback(StateType::Game, "Key_R", &State_Game::Reinforcment, this);
+    evMgr-> AddCallback(StateType::Game, "Key_T", &State_Game::Test, this);
+    evMgr-> AddCallback(StateType::Game, "Key_A", &State_Game::ChoseAll, this);
+    evMgr-> AddCallback(StateType::Game, "Key_D", &State_Game::KillEntity, this);
+    evMgr-> AddCallback(StateType::Game, "Key_B", &State_Game::Print, this);
+    evMgr-> AddCallback(StateType::Game, "Key_Z", &State_Game::SpawnHorse ,this);
 
 
     m_stateMgr->GetContext()->m_systemManager->GetSystem<S_Movement>(System::Movement)->SetMap(m_gameMap);
@@ -74,7 +80,113 @@ void State_Game::OnCreate(){
     box.setOutlineThickness(1);
     box.setFillColor(sf::Color::Transparent);
 
+}
 
+
+void State_Game::Print( EventDetails* l_details __attribute__((unused))){
+
+    for( unsigned int i =0; i< m_mapSize.x; i++){
+    for( unsigned int j =0; j< m_mapSize.y; j++){
+        std::cout << m_stateMgr->GetContext()->m_gameMap->IsWalkable(j,i);
+    }
+        std::cout << std::endl;
+    }
+    
+
+}
+
+void State_Game::Test( EventDetails* l_details __attribute__((unused))){
+
+
+    m_stateMgr->GetContext()->m_systemManager->GetSystem<S_Movement>(System::Movement)->TestTargetPosition();
+
+}
+
+void State_Game::KillEntity(EventDetails* l_details __attribute__((unused))){
+
+    //m_stateMgr->GetContext()->m_systemManager->CheckEntityLists();
+
+
+    std::vector<unsigned int> todelete = std::vector<unsigned int>();
+
+     for( unsigned int i = 0; i < m_entities.size(); i++){
+
+    //    std::cout << " CHECKING :: " << *itr << std::endl;
+
+     //   auto itr = m_entities.begin();
+        if( m_stateMgr->GetContext()->m_systemManager->GetSystem<S_Control>(System::Control)->IsActive(m_entities[i])){
+        
+     //       std::cout << m_entities[i] << " :  is Active " << std::endl; 
+
+    //        m_stateMgr->GetContext()->m_systemManager->GetSystem<S_Collision>(System::Collision)->ReleaseUnit(*itr);
+        //    m_stateMgr->GetContext()->m_systemManager->RemoveEntity(*itr);
+     
+            todelete.push_back(m_entities[i]);
+        
+        }
+    }
+
+    for( auto d : todelete){
+    //      std::cout << "D: " <<  d << std::endl;
+          m_stateMgr->GetContext()->m_systemManager->RemoveEntity(d);
+    }
+
+    m_entities = m_stateMgr->GetContext()->m_systemManager->GetList();
+
+
+
+ //   }
+
+    
+
+ /*
+
+    if( todelete.size() ){
+
+    for( auto d : todelete){
+          std::cout << "D: " <<  d << std::endl;
+          m_stateMgr->GetContext()->m_systemManager->RemoveEntity(d);
+    }
+
+
+
+    std::vector<unsigned int> verryNotFine = std::vector<unsigned int>();
+
+    bool flag = true;
+
+    for( unsigned int i = 0; i < m_entities.size(); i++){
+        flag = true;
+ \
+
+        for( unsigned int j = 0; j < todelete.size(); j++){
+            if(  m_entities[i] == todelete[j]) {  flag = false; }
+        }
+
+        if( flag ) {verryNotFine.push_back( m_entities[i]);}
+
+    }
+
+    for( unsigned int i = 0; i < m_entities.size(); i++){
+        std::cout << " E : "<< m_entities[i] << " ";
+    }
+    std::cout << std::endl;
+
+    for( unsigned int i = 0; i < verryNotFine.size(); i++){
+        std::cout << " V : "<< verryNotFine[i] << " ";
+    }
+    
+    std::cout << std::endl;
+
+    m_entities = verryNotFine;
+
+    }else{
+
+    for( unsigned int i = 0; i < m_entities.size(); i++){
+        std::cout << " E : "<< m_entities[i] << " ";
+    }   std::cout << std::endl;
+
+}
+*/
 }
 
 void State_Game::StopEntity(EventDetails* l_details __attribute__((unused))){
@@ -102,18 +214,20 @@ void State_Game::MoveEntity(EventDetails* l_details __attribute__((unused))){
 
     srand( time( NULL ) );
 
-    for( unsigned int i = 0; i < m_entities.size(); i++){
+  //  for( unsigned int i = 0; i < m_entities.size(); i++){
 
-        unsigned int t1 = std::rand()%( m_mapSize.x );
-        unsigned int t2 = std::rand()%( m_mapSize.y );
+     //   unsigned int t1 = std::rand()%( m_mapSize.x );
+     //   unsigned int t2 = std::rand()%( m_mapSize.y );
 
    //     m_stateMgr->GetContext()->m_systemManager->GetSystem<S_Movement>(System::Movement)->SetTargetPosition(m_entities[i], (t1) *32, (t2) *32);
         
-    }
+   // }
     
     float cor_x = (float)pos.x + m_cameraMove.x - m_context->m_wind->GetWindowSize().x/2;
     float cor_y = (float)pos.y + m_cameraMove.y - m_context->m_wind->GetWindowSize().y/2;
 
+    cor_x = (int)(cor_x/Tile_Size) * Tile_Size + Tile_Size/2 ;
+    cor_y = (int)(cor_y/Tile_Size) * Tile_Size + Tile_Size/2 ;
 
     m_stateMgr->GetContext()->m_systemManager->GetSystem<S_Movement>(System::Movement)->SetTargetPosition(cor_x, cor_y);
     
@@ -125,7 +239,7 @@ void State_Game::MoveEntity(EventDetails* l_details __attribute__((unused))){
 void State_Game::MoveCamera(EventDetails* l_details){
     if( l_details->m_name == "Arrow_left"){
 
-/*
+    /*
         m_cameraMove.x = 
         m_cameraMove.x <= m_viewSize.x/2 ?
         m_cameraMove.x : m_cameraMove.x - MOVE_SPEED;
@@ -134,7 +248,7 @@ void State_Game::MoveCamera(EventDetails* l_details){
             m_cameraMove.x = m_viewSize.x/2;
         }
 
-*/
+    */
     
         m_cameraMove.x = 
         m_cameraMove.x <= (float)m_viewSize.x/2 ?
@@ -170,13 +284,28 @@ void State_Game::OnDestroy(){
       evMgr->RemoveCallback(StateType::Game, "EntityStop");
       evMgr->RemoveCallback(StateType::Game, "EntityMove");
       evMgr->RemoveCallback(StateType::Game, "Key_S");
+      evMgr->RemoveCallback(StateType::Game, "Key_A");
       evMgr->RemoveCallback(StateType::Game, "Key_R");
       evMgr->RemoveCallback(StateType::Game, "Key_Q");
-      
+      evMgr->RemoveCallback(StateType::Game, "Key_D");
+      evMgr->RemoveCallback(StateType::Game, "Key_B");
+      evMgr->RemoveCallback(StateType::Game, "Key_Z");
 
 
       delete m_gameMap;
       m_gameMap = nullptr;
+
+}
+
+void State_Game::ChoseAll(EventDetails* l_details __attribute__((unused))){
+
+    sf::Vector2f t = {
+        static_cast<float>(m_mapSize.x*32),
+        static_cast<float>(m_mapSize.y*32)
+    };
+    sf::Vector2f p = {0,0};
+
+    m_stateMgr->GetContext()->m_systemManager->GetSystem<S_Control>(System::Control)->FindUnit( p, t );
 
 }
 
@@ -185,11 +314,12 @@ void State_Game::Reinforcment(EventDetails* l_details __attribute__((unused))){
 
     for( int i = 0; i < 1000; i++){
     auto newEntity = m_context->m_entityManager->AddEntity("example.ent");
+
     
-        m_entities.push_back(newEntity);
-    
-        auto cor_x = std::rand()%( m_mapSize.x )*32;
-        auto cor_y = std::rand()%( m_mapSize.y )*32;
+        m_entities = m_stateMgr->GetContext()->m_systemManager->GetList();
+
+        auto cor_x = std::rand()%( m_mapSize.x -1 )*Tile_Size + Tile_Size/2;
+        auto cor_y = std::rand()%( m_mapSize.y -1 )*Tile_Size + Tile_Size/2;
 
         m_stateMgr->GetContext()->m_systemManager->GetSystem<S_Movement>(System::Movement)->SetPosition(
             cor_x, 
@@ -215,15 +345,20 @@ void State_Game::SpawnEntity(EventDetails* l_details __attribute__((unused))){
     float cor_x = (float)pos.x + m_cameraMove.x - m_context->m_wind->GetWindowSize().x/2;
     float cor_y = (float)pos.y + m_cameraMove.y - m_context->m_wind->GetWindowSize().y/2;
     
+    cor_x = (int)(cor_x/Tile_Size) * Tile_Size + Tile_Size/2 ;
+    cor_y = (int)(cor_y/Tile_Size) * Tile_Size + Tile_Size/2 ;
 
     auto newEntity = m_context->m_entityManager->AddEntity("example.ent");
 
-    m_entities.push_back(newEntity);
+    m_entities = m_stateMgr->GetContext()->m_systemManager->GetList();
 
     m_stateMgr->GetContext()->m_systemManager->GetSystem<S_Movement>(System::Movement)->SetPosition(
         cor_x, 
         cor_y, 
         newEntity);
+
+    m_stateMgr->GetContext()->m_gameMap->BlockTile((int)(cor_x/Tile_Size),(int)(cor_y/Tile_Size));
+
 
     m_stateMgr->GetContext()->m_systemManager->GetSystem<S_Collision>(System::Collision)->PlaceUnit(
         cor_x, 
@@ -232,9 +367,46 @@ void State_Game::SpawnEntity(EventDetails* l_details __attribute__((unused))){
             
 }
 
+
+void State_Game::SpawnHorse(EventDetails* l_details __attribute__((unused))){
+    auto pos = m_context->m_eventManager->GetMousePos(
+        
+                m_context->m_wind->GetRenderWindow()
+        
+            );
+            
+    float cor_x = (float)pos.x + m_cameraMove.x - m_context->m_wind->GetWindowSize().x/2;
+    float cor_y = (float)pos.y + m_cameraMove.y - m_context->m_wind->GetWindowSize().y/2;
+    
+    cor_x = (int)(cor_x/Tile_Size) * Tile_Size + Tile_Size/2 ;
+    cor_y = (int)(cor_y/Tile_Size) * Tile_Size + Tile_Size/2 ;
+
+    auto newEntity = m_context->m_entityManager->AddEntity("H_i.ent");
+
+    m_entities = m_stateMgr->GetContext()->m_systemManager->GetList();
+
+    m_stateMgr->GetContext()->m_systemManager->GetSystem<S_Movement>(System::Movement)->SetPosition(
+        cor_x, 
+        cor_y, 
+        newEntity);
+
+    m_stateMgr->GetContext()->m_gameMap->BlockTile((int)(cor_x/Tile_Size),(int)(cor_y/Tile_Size));
+
+
+    m_stateMgr->GetContext()->m_systemManager->GetSystem<S_Collision>(System::Collision)->PlaceUnit(
+        cor_x, 
+        cor_y, 
+        newEntity);
+            
+}
+
+
+
 void State_Game::Update(const sf::Time& l_time){
 //m_context = m_stateMgr->GetContext();
 UpdateCamera();
+
+//Print(nullptr);
 
 //std::cout << "ENTITies  :: " << m_entities.size() << std::endl;
 
@@ -280,9 +452,9 @@ if( m_leftClickDown ){
              - m_context->m_wind->GetWindowSize().y/2
      };
 
-        if(!m_stateMgr->GetContext()->m_systemManager->GetSystem<S_Control>(System::Control)->FindUnit(m_posDown, m_posRelease)){
-            m_stateMgr->GetContext()->m_systemManager->GetSystem<S_Control>(System::Control)->ReleaseUnits( );
-        }
+        m_stateMgr->GetContext()->m_systemManager->GetSystem<S_Control>(System::Control)->ReleaseUnits( );
+        m_stateMgr->GetContext()->m_systemManager->GetSystem<S_Control>(System::Control)->FindUnit(m_posDown, m_posRelease);
+
     }
 }
 

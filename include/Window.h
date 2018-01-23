@@ -5,6 +5,7 @@
 #include <SFML/Graphics.hpp>
 #include <SFML/Audio.hpp>
 #include <SFML/System.hpp>
+//#include <stdio.h>
 
 #if not defined EVENTMANAGER_H
 #include "EventManager.h"

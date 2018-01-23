@@ -17,6 +17,9 @@ public:
         bool l_play,
         bool l_loop
     );
+    
+    bool RemoveEntity(const EntityId& l_entity);
+
     void ChangeAnimation(
         const std::set<unsigned int>& l_entities,
         const std::string& l_anim,

@@ -91,7 +91,7 @@ void State_Intro::OnDestroy(){
 
     EventManager* evMgr = m_stateMgr->GetContext()->m_eventManager;
     evMgr->RemoveCallback(StateType::Intro, "Intro_Continue");
-    m_stateMgr->GetContext()->m_textureManager->ReleaseResource("Intro");
+  //  m_stateMgr->GetContext()->m_textureManager->ReleaseResource("Intro");
 }
 
 void State_Intro::AnimateLogo( sf::Sprite& l_sprite ){

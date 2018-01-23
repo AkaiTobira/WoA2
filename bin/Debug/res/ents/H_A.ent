@@ -1,0 +1,10 @@
+|Type|Name|StartFrame|EndFrame|Row|FrameTime|FrameActionStart|End|
+Texture Horse
+Size 32 32
+Scale 1.0 1.0
+AnimationType Directional
+Animation Idle -1 0 0 0.1 -1 -1
+Animation Walk -1 0 3 0.1 -1 -1
+Animation Attacking 0 0 0 0.2 -1 -1
+Animation Hurt 0 0 5 0.2 -1 -1
+Animation Dying 0 0 6 0.2 -1 -1

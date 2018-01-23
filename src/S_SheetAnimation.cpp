@@ -50,6 +50,18 @@ void S_SheetAnimation::Update(float l_dT){
     }
 }
 
+bool S_SheetAnimation::RemoveEntity(const EntityId& l_entity){
+    
+
+    for( auto it = m_entities.begin(); it != m_entities.end(); it++){
+        if( l_entity == *it ){
+            m_entities.erase(it);
+            return true;
+        }
+    }
+    return false;
+}
+
 
 void S_SheetAnimation::Notify(const Message& l_message){
 
@@ -99,6 +111,9 @@ void S_SheetAnimation::Notify(const Message& l_message){
                 //          std::cout << "DIE" << std::endl;
                            // ChangeAnimation(reciver,"Death",true,false);
                         break;
+                        default:
+                            std::cout << "SHeet ANimantion :: Notify :: Get unknown ENtityState"<< std::endl; 
+                        break;
                         }
 
                     
@@ -115,7 +130,7 @@ void S_SheetAnimation::Notify(const Message& l_message){
                 if( recivers[(int)EntityState::Idle].size()      ) ChangeAnimation(recivers[(int)EntityState::Idle],"Idle", true, true);
                 if( recivers[(int)EntityState::Walking].size()   ) ChangeAnimation(recivers[(int)EntityState::Walking],"Walk", true, true);
                 if( recivers[(int)EntityState::Attacking].size() ) ChangeAnimation(recivers[(int)EntityState::Attacking],"Atack",true,false);
-                if( recivers[(int)EntityState::Hurt].size()      );// ChangeAnimation(recivers[(int)EntityState::Hurt],"Hurt",true,false);
+                if( recivers[(int)EntityState::Hurt].size()      ) {} ;// ChangeAnimation(recivers[(int)EntityState::Hurt],"Hurt",true,false);
                 if( recivers[(int)EntityState::Dying].size()     ) ChangeAnimation(recivers[(int)EntityState::Dying],"Death",true,false);
 
 

@@ -13,6 +13,7 @@
 #include "SystemManager.h"
 #include "Window.h"
 
+
 #include <functional>
 
 using EntityId = unsigned int;
@@ -34,7 +35,6 @@ public:
     int AddEntity(const std::string& l_entityFile);
     bool RemoveEntity(const EntityId& l_id);
     bool AddComponent(const EntityId& l_entity, const Component& l_component);
-
     template<class T>
     T* GetComponent(const EntityId& l_entity, const Component& l_component)
     {

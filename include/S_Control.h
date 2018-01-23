@@ -12,12 +12,13 @@ public:
     void Notify(const Message& l_message );
     void Update(float l_dt);
 
+    bool RemoveEntity(const EntityId& l_entity);
     void ActivateUnit(const EntityId& l_entity);
     void ReleaseUnit(const EntityId& l_entity);
     bool FindUnit( float l_x, float l_y );
     bool FindUnit( sf::Vector2f& l_x, sf::Vector2f& l_y );
     void ReleaseUnits( );
-    
+    unsigned int IsActive( const EntityId& l_entity);
     void HandleEvent(
         const std::set<unsigned int>& participians,
         const EntityEvent& l_events

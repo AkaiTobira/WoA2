@@ -19,6 +19,7 @@ public:
         unsigned int origin = 0;
         l_stream >> m_AABB.width >> m_AABB.height >> m_offset.x >> m_offset.y >> origin;
         
+        m_onceStoped = false;
         switch(origin){
             case 0:
                 m_origin = Origin::Abs_Centre;
@@ -32,15 +33,21 @@ public:
             default:
             break;
         }
-        
-
-        std::cout << " LOADED :: " <<
-        m_AABB.width << " " <<
-        m_AABB.height << " " <<
-        m_offset.x << " " <<
-        m_offset.y << " " <<std::endl;
 
     }
+
+    void MarkStop(){
+        m_onceStoped = true;
+    }
+
+    void Unmark(){
+        m_onceStoped = false;
+    }
+
+    bool wasStoped(){
+        return m_onceStoped;
+    }
+
 
     void CollideOnX(){ m_collidingOnX = true; }
 
@@ -77,12 +84,21 @@ public:
         return m_AABB;
     }
 
+    sf::Vector2f GetPosition(){
+        return sf::Vector2f(m_AABB.left, m_AABB.top);
+    }
+
+    sf::Vector2f GetSize(){
+        return sf::Vector2f(m_AABB.width, m_AABB.height);
+    }
+
 private:
     sf::FloatRect m_AABB;
     sf::Vector2f m_offset;
     Origin m_origin;
     bool m_collidingOnX;
     bool m_collidingOnY;
+    bool m_onceStoped;
 };
 
 #endif

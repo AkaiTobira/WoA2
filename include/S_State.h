@@ -16,6 +16,8 @@ public:
     void ChangeState(const std::set<unsigned int>& participians,const EntityState& l_state, const bool& l_force);
     void HandleEvent(const std::set<unsigned int>& participians,const EntityEvent& l_events);
     void KeepState(const EntityId& l_entity,const EntityState& l_state);
+
+    bool RemoveEntity(const EntityId& l_entity);
 };
 
 #endif

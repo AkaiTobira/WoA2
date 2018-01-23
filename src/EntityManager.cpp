@@ -1,7 +1,7 @@
 #include "EntityManager.h"
 
 EntityManager::EntityManager(SystemManager* l_sysMgr, TextureManager* l_textureMgr)
-    : m_idCounter(0), m_systems(l_sysMgr), m_textureManager(l_textureMgr)
+    : m_idCounter(1), m_systems(l_sysMgr), m_textureManager(l_textureMgr)
 {
     #ifdef DEBUGG_RUN
         std::cout << "EntityManager :: START" << std::endl;
@@ -87,6 +87,7 @@ int EntityManager::AddEntity(const Bitmask& l_mask)
 }
 
 
+
 bool EntityManager::RemoveEntity(const EntityId& l_id)
 {
 
@@ -105,7 +106,6 @@ bool EntityManager::RemoveEntity(const EntityId& l_id)
     m_entities.erase(itr);
     m_systems->RemoveEntity(l_id);
     return true;
-
 
 }
 
