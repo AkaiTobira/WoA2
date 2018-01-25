@@ -17,6 +17,7 @@ OMP = -fopenmp
 ER=2> errors.txt
 NAME_D=-o $(OSRC)sfml-app
 
+
 #####################################################################
 #Reading Files
 SRC  = $(wildcard $(SRCD)*.cpp)
@@ -26,11 +27,11 @@ DEPS := $(OBJ:.o=.d)
 
 #####################################################################
 #Compilation Flag
-DEB   = -Wall -Wextra -pedantic -Werror
+DEB   = -Wall -Wextra -pedantic
 DGB   = -g -da 
 LCK   = -MMD -c 
-COM   = $(CXX) $(DEB) $(C14) $(LCK)
-BUILD = $(CXX) $(DGB) $(OBJ) $(OPT) $(OMP)
+COM   = $(CXX)  $(DEB) $(C14) $(LCK)
+BUILD = $(CXX)  $(OBJ) $(OPT) $(OMP)
 OPT   = -o3
 
 CDB   = $(CXX) $(DGB) $(DEB) $(C14) $(LCK)
