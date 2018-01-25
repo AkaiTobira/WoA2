@@ -4,6 +4,7 @@
 #include "State_Loading.h"
 #include "State_MainMenu.h"
 #include "State_Paused.h"
+#include "State_Options.h"
 
 
 StateManager::StateManager(SharedContext* l_shared)
@@ -14,7 +15,8 @@ StateManager::StateManager(SharedContext* l_shared)
      RegisterState<State_Game>(StateType::Game);
      RegisterState<State_Loading>(StateType::Loading);
      RegisterState<State_Paused>(StateType::Pause);
-    //  RegisterState<State_Options>(StateType::Options);
+     RegisterState<State_Options>(StateType::Options);
+
     #ifdef DEBUGG_RUN
     std::cout << "StateManager :: REGISTERED_STATES :: " << m_stateFactory.size() <<  std:: endl;
     #endif
@@ -143,6 +145,7 @@ void StateManager::Draw()
 void StateManager::SwitchTo(const StateType& l_type){
 
     m_shared->m_eventManager->setCurrentState(l_type);
+    m_shared->m_guiManager->SetCurrentState(l_type);
 
     for( auto itr = m_states.begin(); itr != m_states.end(); ++itr){
         if( itr-> first == l_type ){

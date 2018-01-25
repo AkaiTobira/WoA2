@@ -31,10 +31,12 @@ private:
 
     Window m_window;
 
-    StateManager m_stateManager;
+    StateManager   m_stateManager;
     TextureManager m_textureManager;
+    FontManager    m_fontManager;
     SystemManager  m_systemManager;
     EntityManager  m_entityManager;
+    GUI_Manager    m_guiManager;
     FPS m_fps;
 
     sf::Texture m_texture;

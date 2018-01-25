@@ -15,14 +15,15 @@ S_Collision::S_Collision(SystemManager* l_systemMgr)
 }
 
 S_Collision::~S_Collision(){
-    m_gameMap = nullptr;
+
 
     for( unsigned int i = 0; i < m_setsSizes.y; i++){
       delete[] m_squares[i];
     }
 
-    delete[] m_squares;
-      
+    //delete m_squares;
+
+    m_gameMap = nullptr;
 }
 
 void S_Collision::SetMap(Map* l_map){ 

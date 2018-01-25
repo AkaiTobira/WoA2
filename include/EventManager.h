@@ -1,7 +1,10 @@
 #ifndef EVENTMANAGER_H
 #define EVENTMANAGER_H
 
+
+
 #include "Utilities.h"
+
 #include <SFML/Window/Event.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <vector>
@@ -10,8 +13,18 @@
 #include <functional>
 #include <sstream>
 #include <fstream>
+#include "GUI_Events.h"
+//#include "GUI.h"
 
-
+//#define __STDC_WANT_LIB_EXT1__ 1
+#include <stdio.h>
+#include <stdlib.h>
+//#include <string>
+//#include <string.h>
+//#include <stdlib.h>
+//#include <stdio.h>
+//#include <errno.h>
+#include <cstring>
 
 enum class EventType
 {
@@ -30,6 +43,10 @@ enum class EventType
     Keyboard = sf::Event::Count +1, 
     Mouse, 
     Joystick,
+    GUI_Click, 
+    GUI_Release, 
+    GUI_Hover, 
+    GUI_Leave
 };
 
 
@@ -43,9 +60,13 @@ struct EventInfo
     {
         m_code = l_event;
     }
+    EventInfo(GUI_Event l_guiEvent){
+        m_gui = l_guiEvent;
+    }
     union
     {
         int m_code;
+        GUI_Event m_gui;
     };
 };
 
@@ -64,6 +85,9 @@ struct EventDetails
     sf::Vector2i m_mouse;
     int m_mouseWheelDelta;
     int m_keyCode;
+    std::string m_guiInterface; // GUI interface name.
+    std::string m_guiElement; // GUI element name.
+    GUI_EventType m_guiEvent; // GUI event type.
 
     void Clear()
     {
@@ -73,6 +97,9 @@ struct EventDetails
         m_mouse = sf::Vector2i(0,0);
         m_mouseWheelDelta = 0;
         m_keyCode = -1;
+        m_guiInterface = "";
+        m_guiElement = "";
+        m_guiEvent = GUI_EventType::None;
 
     }
 
@@ -89,7 +116,28 @@ public:
     unsigned int c;
     Events m_events;
 
-    Binding(const std::string& l_name): m_name(l_name), m_details(l_name), c(0) {}
+    Binding(const std::string& l_name): 
+    m_name(l_name), 
+    m_details(l_name), 
+    c(0) {}
+
+    ~Binding(){
+    // GUI portion.
+    for (auto itr = m_events.begin();
+        itr != m_events.end(); ++itr)
+            {
+            if (
+                itr->first == EventType::GUI_Click ||
+                itr->first == EventType::GUI_Release ||
+                itr->first == EventType::GUI_Hover ||
+                itr->first == EventType::GUI_Leave
+                ){
+                    delete [] itr->second.m_gui.m_interface;
+                    delete [] itr->second.m_gui.m_element;
+            }
+        }
+    }
+
 
     void BindEvent( EventType l_type, EventInfo l_info = EventInfo());
 };
@@ -115,6 +163,8 @@ struct EnumClassHash
 };
 
 using Callbacks = std::unordered_map<StateType, CallbackContainer, EnumClassHash>;
+
+
 
 class EventManager
 {
@@ -153,6 +203,7 @@ public:
     }
 
     void HandleEvent(sf::Event& l_event);
+    void HandleEvent(GUI_Event& l_event);
     void Update();
 
     sf::Vector2i GetMousePos( sf:: RenderWindow* l_wind = nullptr)
@@ -171,5 +222,7 @@ private:
     StateType m_currentState;
 
 };
+
+
 
 #endif // EVENTMANAGER_H

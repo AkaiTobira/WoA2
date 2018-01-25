@@ -1,0 +1,6 @@
+Interface MainMenu MM_L.gui 0 0 Immovable NoTitle "Main menu"
+Element Label Title 85 0 MM_T.gui "Main menu:"
+Element Label Play 0 100 MM_B.gui "PLAY"
+Element Label Credits 0 136 MM_B.gui "CREDITS"
+Element Label Options 0 172 MM_B.gui "OPTIONS <DON"T USE>"
+Element Label Quit 0 208 MM_B.gui "EXIT"

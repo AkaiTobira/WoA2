@@ -34,6 +34,10 @@ void FPS::Setup(  int l_charSize, int l_width, sf::Vector2f l_screenPos)
 {
     sf::Vector2f l_offset( 0.2f, 0.2f);
     m_visible = false;
+
+  //  if( ! m_stateMgr->GetContext()->m_fontManager->RequireResource("Titania")) ){
+   //     std::cout << "Font not found : Titania" << std::endl;
+   // }
     m_font.loadFromFile( Utils::GetWorkingDirectory() + m_fontPath );
     m_content.setFont(m_font);
     m_content.setString("");

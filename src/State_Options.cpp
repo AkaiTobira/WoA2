@@ -10,7 +10,13 @@ State_Options::~State_Options(){
 
 
 void State_Options::OnCreate(){
-       m_font.loadFromFile("res/fonts/Titania.ttf");
+        if(!m_stateMgr->GetContext()->m_fontManager->RequireResource("Titania")){
+            #ifdef DEBUGG_RUN
+                 std::cout << "StateMainMenu:: FONT_LOAD_FAIL" << std::endl; 
+            #endif
+        }
+
+        m_font  = *m_stateMgr->GetContext()->m_fontManager->GetResource("Titania");
        m_text.setFont(m_font);
        m_text.setString(sf::String("OPTIONS:"));
        m_text.setCharacterSize(18);

@@ -35,8 +35,6 @@ void State_Intro::OnCreate(){
 
     sf::Vector2u windowSize = m_stateMgr->GetContext()->m_wind->GetRenderWindow()->getSize();
 
-    std::string path = "res/fonts/Titania.ttf";
-
     #ifdef DEBUGG_RUN
 
     if ( ! m_stateMgr->GetContext()->m_textureManager->RequireResource("Intro")){
@@ -59,13 +57,15 @@ void State_Intro::OnCreate(){
 
     m_introSprite.setPosition(windowSize.x/2.0f,windowSize.y/2.0f);
 
+    if(!m_stateMgr->GetContext()->m_fontManager->RequireResource("Titania")){
+        #ifdef DEBUGG_RUN
+            std::cout << "StateIntro :: FONT_LOAD_FAIL" << std::endl; 
+        #endif
+    }
+
+    m_font  = *m_stateMgr->GetContext()->m_fontManager->GetResource("Titania");
     //tu cos trzeba poprawic
 
-    if(!m_font.loadFromFile(Utils::GetWorkingDirectory() + path)){
-        #ifdef DEBUGG_RUN
-        std::cout << "StateIntro :: FONT_LOAD_FAIL" << std::endl; 
-    #endif
-    }
 
     #ifdef DEBUGG_RUN
 

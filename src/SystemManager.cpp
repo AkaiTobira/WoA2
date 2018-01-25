@@ -112,8 +112,7 @@ bool SystemManager::CheckEntityLists(){
                     std::cout << "HELL AS FUCK2 " << nm <<" "<< nm+1 << std::endl;
              
                     std::cout << "DIfrence : " << l2[i] << " " << l[i] << std::endl;
-             
-                    //  return false;
+
                 }
              }
 

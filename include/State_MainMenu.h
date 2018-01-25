@@ -21,8 +21,13 @@ class State_MainMenu : public BaseState{
         void Update(const sf::Time& l_time) ;
         void Draw();
 
-        void Quit(EventDetails* l_details);
+     //   void Quit(EventDetails* l_details);
         void MouseClick(EventDetails* l_details);
+
+        void Play(EventDetails* l_details);
+        void Credits(EventDetails* l_details);
+        void Quit(EventDetails* l_details);
+        void Options(EventDetails* l_details);
 
     private:
 

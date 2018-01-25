@@ -155,7 +155,7 @@ public:
         {
             delete texture;
             texture = nullptr;
-            std::cerr << "! Failed to lad texture : " << l_path << std::endl;
+            std::cerr << "! Failed to load texture : " << l_path << std::endl;
         }
         return texture;
     }
@@ -163,7 +163,7 @@ public:
 
 using Animations = std::unordered_map<std::string, Anim_Base*>;
 
-
+#include "FontManager.h"
 
 class SpriteSheet
 {

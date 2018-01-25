@@ -18,9 +18,6 @@ EventManager::EventManager(std::string l_path ): m_path(l_path), m_hasFocus(true
 EventManager::~EventManager()
 {
 
-
-
-
     for ( auto & itr : m_bindings )
     {
         delete itr.second;
@@ -71,19 +68,53 @@ void EventManager::LoadBindings()
                 break;
             }
 
-            std::istringstream buffer(keyval.substr(start,end-start));
 
-            int code;
-            buffer >> code;
-            EventType type = EventType( code );
+            EventType type = EventType(stoi(keyval.substr(start, end-start)));
 
-            std::istringstream buffer2( keyval.substr(end + delimeter.length(), keyval.find(delimeter, end+ delimeter.length())));
-            buffer2 >> code;
-            //     std::cout << code << " " << std::endl;
-            EventInfo  eventInfo;
-            eventInfo.m_code = code;
+            std::cout << (unsigned int)type << std::endl;
 
-            bind->BindEvent(type,eventInfo);
+            EventInfo eventInfo;
+            if (
+                type == EventType::GUI_Click   ||
+                type == EventType::GUI_Release ||
+                type == EventType::GUI_Hover   ||
+                type == EventType::GUI_Leave
+                ){
+
+
+                    std::cout << " Loaded GUI EVENT "<< std::endl;
+
+                    start = end + delimeter.length();
+                    end = keyval.find(delimeter, start);
+                    std::string window = keyval.substr(start, end - start);
+                    std::string element;
+                    if (end != std::string::npos){
+                        start = end + delimeter.length();
+                        end = keyval.length();
+                        element = keyval.substr(start, end);
+                    }
+                char* w = new char[window.length() + 1]; // +1 for \0
+                char* e = new char[element.length() + 1];
+                // Size in bytes is the same as character length.1 char = 1B.
+                
+                //strcpy(w, window.length() + 1, window.c_str());
+                
+                strcpy(w,window.c_str());
+                strcpy(e,element.c_str());
+
+                std::cout <<"EVENTMANAGR :: " <<w << " " << e << std::endl;
+
+                //strcpy_s(w, window.length() + 1, window.c_str());
+                //strcpy_s(e, element.length() + 1, element.c_str());
+                
+                eventInfo.m_gui.m_interface = w;
+                eventInfo.m_gui.m_element = e;
+            } else {
+                int code = stoi(keyval.substr(end + delimeter.length(),
+                keyval.find(delimeter,end + delimeter.length())));
+                eventInfo.m_code = code;
+            }
+            bind->BindEvent(type, eventInfo);
 
         }
 
@@ -134,7 +165,35 @@ void EventManager::setCurrentState(StateType l_type)
     m_currentState = l_type;
 }
 
-
+void EventManager::HandleEvent(GUI_Event& l_event){
+    for (auto &b_itr : m_bindings){
+    Binding* bind = b_itr.second;
+    for (auto &e_itr : bind->m_events)
+    {
+        if (e_itr.first != EventType::GUI_Click &&
+            e_itr.first != EventType::GUI_Release &&
+            e_itr.first != EventType::GUI_Hover &&
+            e_itr.first != EventType::GUI_Leave)
+        { continue; }
+        if ((e_itr.first == EventType::GUI_Click &&
+            l_event.m_type != GUI_EventType::Click) ||
+            (e_itr.first == EventType::GUI_Release &&
+            l_event.m_type != GUI_EventType::Release) ||
+            (e_itr.first == EventType::GUI_Hover &&
+            l_event.m_type != GUI_EventType::Hover) ||
+            (e_itr.first == EventType::GUI_Leave &&
+            l_event.m_type != GUI_EventType::Leave))
+        { continue; }
+        if (strcmp(e_itr.second.m_gui.m_interface,
+                    l_event.m_interface) ||
+             strcmp(e_itr.second.m_gui.m_element, l_event.m_element))
+        { continue; }
+        bind->m_details.m_guiInterface = l_event.m_interface;
+        bind->m_details.m_guiElement = l_event.m_element;
+        ++(bind->c);
+        }
+    }
+}
 void EventManager::HandleEvent( sf::Event& l_event)
 {
     for( auto & b_itr : m_bindings)
@@ -143,6 +202,15 @@ void EventManager::HandleEvent( sf::Event& l_event)
         for( auto &e_itr : bind->m_events)
         {
             EventType sfmlEvent = (EventType)l_event.type;
+            if (e_itr.first == EventType::GUI_Click ||
+                e_itr.first == EventType::GUI_Release ||
+                e_itr.first == EventType::GUI_Hover ||
+                e_itr.first == EventType::GUI_Leave)
+            {
+                continue;
+            }   
+
+
             if( e_itr.first != sfmlEvent )
             {
                 continue;

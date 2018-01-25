@@ -57,7 +57,7 @@ S_Movement::~S_Movement(){
     for( unsigned int i = 0; i<m_mapSize.x; i++ ){
         delete [] m_ReservedTiles[i];
     }
-    delete [] m_ReservedTiles;
+    delete  m_ReservedTiles;
 
     m_gameMap = nullptr;
 
@@ -1022,8 +1022,8 @@ std::stack<SE> S_Movement::AStar(unsigned int& l_entity){
 
                 if(!m_gameMap->IsWalkable(i, j)) { continue; }
 
-                float distanceX = abs(i - targ.x);
-                float distanceY = abs(j - targ.y);
+                float distanceX = std::abs(static_cast<int>(i - targ.x));
+                float distanceY = std::abs(static_cast<int>(j - targ.y));
 
             //    distanceX = distanceX*distanceX;
             //    distanceY = distanceY*distanceY;

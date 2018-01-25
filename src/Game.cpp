@@ -3,9 +3,12 @@
 Game::Game(): m_window("Project : WOA", sf::Vector2u(800,640)),
 m_stateManager(&m_context),
 m_textureManager(static_cast<std::string>("config/textures.cfg")),
+m_fontManager(static_cast<std::string>("config/fonts.cfg")),
 m_systemManager(),
 m_entityManager(&m_systemManager,&m_textureManager),
+m_guiManager(m_window.GetEventManager(), &m_context),
 m_fps(static_cast<std::string>("res/fonts/Titania.ttf"))
+
 {
 
     #ifdef DEBUGG_RUN
@@ -15,6 +18,7 @@ m_fps(static_cast<std::string>("res/fonts/Titania.ttf"))
 
     m_context.m_wind = &m_window;
     m_context.m_textureManager = &m_textureManager;
+    m_context.m_fontManager = &m_fontManager;
     m_systemManager.SetEntityManager(&m_entityManager);
     m_context.m_systemManager = &m_systemManager;
     m_context.m_entityManager = &m_entityManager;
@@ -22,6 +26,7 @@ m_fps(static_cast<std::string>("res/fonts/Titania.ttf"))
     m_fps.SetVisible(true);
     m_clockFPS.restart();
     m_context.m_eventManager = m_window.GetEventManager();
+    m_context.m_guiManager = &m_guiManager;
     m_stateManager.SwitchTo(StateType::Intro);
 }
 
@@ -39,7 +44,19 @@ void Game::Update()
     //  float timestep = 1.0f; // m_snake.GetSpeed();
     m_stateManager.Update(m_currentFPS);
     m_fps.Update(m_currentFPS);
+    m_context.m_guiManager->Update(m_currentFPS.asSeconds());
+
+    GUI_Event guiEvent;
+    while (m_context.m_guiManager->PollEvent(guiEvent)){
+
+        std::cout << (unsigned int) guiEvent.m_type << std::endl;
+
+        m_window.GetEventManager()->HandleEvent(guiEvent);
+    }
+
     m_clockFPS.restart();
+
+
 
 }
 
@@ -64,6 +81,7 @@ void Game::Render()
     m_window.BeginDraw();
     m_stateManager.Draw();
     m_fps.Draw();
+    m_context.m_guiManager->Render(m_window.GetRenderWindow());
     m_window.EndDraw();
 
  //   clock_t t1 = clock();

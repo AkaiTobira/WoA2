@@ -19,23 +19,17 @@ void State_Loading::OnCreate(){
 
     sf::Vector2u windowSize = m_stateMgr->GetContext()->m_wind->GetRenderWindow()->getSize();
 
-    std::string path = "res/fonts/Titania.ttf";
+        if(!m_stateMgr->GetContext()->m_fontManager->RequireResource("Titania")){
+            #ifdef DEBUGG_RUN
+                 std::cout << "StateMainMenu:: FONT_LOAD_FAIL" << std::endl; 
+            #endif
+        }
 
+        m_font  = *m_stateMgr->GetContext()->m_fontManager->GetResource("Titania");
     m_complete = false;
 
     //tu cos trzeba poprawic
 
-    if(!m_font.loadFromFile(Utils::GetWorkingDirectory() + path)){
-        #ifdef DEBUGG_RUN
-        std::cout << "StateLoading :: FONT_LOAD_FAIL" << std::endl; 
-    #endif
-    }
-
-    #ifdef DEBUGG_RUN
-
-        std::cout << "StateLoading :: FONT :: " << path << std::endl;
-
-    #endif
 
 
     m_text.setFont(m_font);
