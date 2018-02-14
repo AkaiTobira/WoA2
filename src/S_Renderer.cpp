@@ -1,5 +1,5 @@
 #include "S_Renderer.h"
-#define RENDER_DEBUG
+//#define RENDER_DEBUG
 
 
 S_Renderer::S_Renderer(SystemManager* l_systemMgr)
@@ -19,7 +19,8 @@ S_Renderer::S_Renderer(SystemManager* l_systemMgr)
     m_requiredComponents.push_back(req);
     req.Clear();
     m_systemManager->GetMessageHandler()-> Subscribe(EntityMessage::Direction_Changed,this);
-
+   
+    m_once = true;
 
     #ifdef RENDER_DEBUG
         std::string path = "res/fonts/Titania.ttf";
@@ -32,6 +33,23 @@ S_Renderer::~S_Renderer(){}
 
 void S_Renderer::Update(float l_dT __attribute__((unused))){
     EntityManager* entities = m_systemManager->GetEntityManager();
+
+    if( m_once ){
+
+    if( m_systemManager->GetEntityManager()->GetTextureManager()->RequireResource("tg") ){
+        m_targetTexture = *m_systemManager->GetEntityManager()->GetTextureManager()->GetResource("tg");
+    }else{
+        std::cout << "Failed to load texture :: " << "Target" << std::endl;
+    }
+
+
+    m_targetTexture = *m_systemManager->GetEntityManager()->GetTextureManager()->GetResource("tg");
+    m_targetSprite.setTexture(m_targetTexture);
+    m_targetSprite.setOrigin(m_targetTexture.getSize().x/2.0f,m_targetTexture.getSize().y/2.0f );
+
+    m_targetSprite.setPosition(-10,-10);
+    m_once = false;
+    }
 
     for(auto &entity : m_entities){
 
@@ -79,6 +97,8 @@ void S_Renderer::Render(Window* l_wind, unsigned int l_layer){
     EntityManager* entities = m_systemManager->GetEntityManager();
     for(auto &entity : m_entities){
         C_Position* position = entities->GetComponent<C_Position>(entity, Component::Position);
+        C_Movable* movable = entities->GetComponent<C_Movable>(entity, Component::Movable);
+
         if(position->GetElevation() < l_layer){ continue; }
         if(position->GetElevation() > l_layer){ break; }
 
@@ -92,6 +112,33 @@ void S_Renderer::Render(Window* l_wind, unsigned int l_layer){
         drawableBounds.top    = position->GetFPosition().y -   drawable->GetSize().y;
         drawableBounds.width  = drawable->GetSize().x;
         drawableBounds.height = drawable->GetSize().y;
+
+
+    //    m_targetSprite.setPosition(100.0f,100.0f);
+
+
+
+        if( position->isMoving() ) {
+            if(  l_wind->GetViewSpace().left <  movable->GetFTargetPosition().x and 
+                l_wind->GetViewSpace().left + l_wind->GetViewSpace().height + 158 >  movable->GetFTargetPosition().x  ){
+
+            if(  l_wind->GetViewSpace().top <  movable->GetFTargetPosition().y and 
+                l_wind->GetViewSpace().top + l_wind->GetViewSpace().width   >  movable->GetFTargetPosition().y  ){
+
+                    m_targetSprite.setPosition(movable->GetFTargetPosition().x,movable->GetFTargetPosition().y);
+                }
+            }
+
+                l_wind->GetRenderWindow()->draw(m_targetSprite);
+        }else{
+            m_targetSprite.setPosition(-10,-10);
+        }
+
+
+        if( position->isMoving() ) {
+                
+        }
+
 
         #ifdef RENDER_DEBUG
             sf::Text nmbr;
@@ -117,13 +164,19 @@ void S_Renderer::Render(Window* l_wind, unsigned int l_layer){
             }
             collisionBox.setFillColor(sf::Color::Transparent);
 
-            C_Movable* movable = entities->GetComponent<C_Movable>(entity, Component::Movable);
+           // C_Movable* movable = entities->GetComponent<C_Movable>(entity, Component::Movable);
 
             sf::CircleShape targetDot;
             targetDot.setRadius(6);
             targetDot.setPosition(movable->GetFTargetPosition());
             targetDot.setFillColor(sf::Color::Magenta);
             targetDot.setOutlineColor(sf::Color::Magenta);  
+
+            sf::CircleShape targetDot2;
+            targetDot2.setRadius(10);
+            targetDot2.setPosition(l_wind->GetViewSpace().left + l_wind->GetViewSpace().width - 100,l_wind->GetViewSpace().top + 100);
+            targetDot2.setFillColor(sf::Color::Magenta);
+            targetDot2.setOutlineColor(sf::Color::Magenta);  
 
 
             sf::RectangleShape LB1;
@@ -143,6 +196,8 @@ void S_Renderer::Render(Window* l_wind, unsigned int l_layer){
 
         #endif
 
+
+
         if (!l_wind->GetViewSpace().intersects(drawableBounds))
         {
             continue;
@@ -152,13 +207,21 @@ void S_Renderer::Render(Window* l_wind, unsigned int l_layer){
             l_wind->GetRenderWindow()->draw(LB2);
             #endif
         drawable->Draw(l_wind->GetRenderWindow());
+            l_wind->GetRenderWindow()->draw(m_targetSprite);
+
+ 
 
         #ifdef RENDER_DEBUG
 
             l_wind->GetRenderWindow()->draw(nmbr);
             l_wind->GetRenderWindow()->draw(collisionBox);
             l_wind->GetRenderWindow()->draw(targetDot);
+             
+
+             l_wind->GetRenderWindow()->draw(targetDot2);
         #endif
+
+
     }
 }
 

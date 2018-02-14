@@ -2,8 +2,19 @@
 
 
 
-Map::Map(SharedContext* l_context, BaseState* l_curentState):m_context(l_context), m_maxMapSize(32,32), m_defaultTile(l_context), m_tileCount(0), m_tileSetCount(0), m_loadNextMap(false),m_currentState(l_curentState){
+Map::Map(SharedContext* l_context, BaseState* l_curentState):
+m_context(l_context),
+ m_maxMapSize(32,32), 
+ m_defaultTile(l_context), 
+ m_tileCount(0), 
+ m_tileSetCount(0),
+  m_loadNextMap(false),
+  m_currentState(l_curentState){
     
+    m_tileSetBorderCount = 0;
+
+    m_mapTab = nullptr;
+
     std::string path = "res/tiles/tileMap.cfg";
     
     #ifdef DEBUGG_RUN
@@ -109,7 +120,7 @@ inline int Map::ConvertTileSquare( unsigned int l_terr, Squares l_sq ){
 inline int Map::ConvertTileId(int l_number){
       //  const int tileWidth = 9;
       //  std::cout << l_number << std::endl;
-        switch( l_number) {
+        switch( l_number ) {
             case Terrains::Grass :
                 return (( Terrains::Grass * 3 + 1 ) * Sheet::Tile_Width +  1 + (std::rand()%3) * 3 ) ;
             break;
@@ -150,6 +161,9 @@ inline int Map::ConvertTileId(int l_number){
 
 
 void Map::InsertTileBorder( unsigned int l_x, unsigned int l_y, int l_value , Squares l_sq){
+    
+  //  std::cout << l_value;
+    
     int TileId = -1;
     if( m_mapTab[l_x][l_y] > l_value ){
         TileId =  ConvertTileSquare( l_value, l_sq );
@@ -700,8 +714,8 @@ void Map::LoadBitMap( const std::string & l_path){
         end[0] = bih->biWidth;
         end[1] = bih->biHeight;
     
-        delete bih;
-        delete bfh;
+        delete[] bih;
+        delete[] bfh;
     
         return end;
     }
@@ -767,8 +781,8 @@ void Map::LoadBitMap( const std::string & l_path){
             }
         }
     
-        delete bfh;
-        delete bih;
+        delete[] bfh;
+        delete[] bih;
         return Values;
     }
     

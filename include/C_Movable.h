@@ -30,6 +30,8 @@ public:
         l_stream >> dir;
         m_dir = (Direction)dir;
         m_movePause = false;
+        m_pausedAt = 0; 
+        m_needNewPath = false;
     }
 
 
@@ -182,6 +184,9 @@ public:
         }
 
         m_steps.pop();
+        if( m_steps.empty() ){
+             return Direction::None; 
+        }
         SE temp  = m_steps.top();
         m_checkpoint = temp.m_vec;
     
@@ -225,6 +230,21 @@ public:
         m_velocity = l_vec;
     }
 
+
+    void AddToStack( Direction l_dir, sf::Vector2u l_vec){
+
+        std::cout << 
+        " Direction             :: " << (int)l_dir <<
+        " NewVEC                :: " << l_vec.x << " " << l_vec.y << std::endl <<
+        " Checkpoint            :: " << m_checkpoint.x << " " << m_checkpoint.y << std::endl <<
+        " CurrentStackDirection :: " << (int)m_steps.top().m_dir <<
+        " CurrentStackVEC       :: " << m_steps.top().m_vec.x <<  " " << m_steps.top().m_vec.y << std::endl;
+
+        m_steps.push( SE(l_dir, l_vec));
+        m_checkpoint = m_steps.top().m_vec;
+    }
+
+
     void SetStackSteps(std::stack<SE> l_steps){
         m_steps = l_steps;
         if( m_steps.empty() ) {
@@ -248,6 +268,24 @@ public:
     }
 
 
+    bool NeedRecalculation(){
+        return m_needNewPath;
+    }
+
+
+    void AddPauseTime(float l_dT){
+        m_pausedAt += l_dT; 
+        if( m_pausedAt > 2.0){ 
+            m_needNewPath = true; 
+        }else{
+            m_needNewPath = false;
+        }
+    }
+
+    void ResetPauseTime(){
+        m_pausedAt = 0; 
+    }
+
 private:
     const float Tile_Size = 32;
 
@@ -264,10 +302,12 @@ private:
     sf::Vector2u m_reservedPrevPosition;
 
     std::stack<SE> m_steps;
+    float m_pausedAt;
 
     Direction m_dir;
     bool m_walking;
     bool m_movePause;
+    bool m_needNewPath;
 };
 
 #endif

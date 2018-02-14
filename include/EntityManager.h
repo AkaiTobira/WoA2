@@ -68,7 +68,12 @@ public:
     bool RemoveComponent(const EntityId& l_entity, const Component& l_component);
     bool HasComponent(const EntityId& l_entity, const Component& l_component);
     void Purge();
-    
+
+
+    TextureManager* GetTextureManager(){
+        return m_textureManager;
+    }
+
 protected:
 
 private:

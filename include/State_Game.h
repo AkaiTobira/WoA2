@@ -60,6 +60,7 @@ class State_Game : public BaseState{
         Map* m_gameMap;
 
         std::vector<unsigned int> m_entities;
+        std::set<unsigned int> m_activeUnits;
         int m_entityid;
 
         sf::RectangleShape box;

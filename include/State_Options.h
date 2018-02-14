@@ -20,6 +20,7 @@ class State_Options : public BaseState{
         void Draw();
 
         void MouseClick(EventDetails* l_details);
+        void MainMenu( EventDetails* l_details );
     private:
 
         float m_middle;

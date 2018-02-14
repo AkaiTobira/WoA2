@@ -15,7 +15,7 @@ OMP = -fopenmp
 ####################################################################
 #Output
 ER=2> errors.txt
-NAME_D=-o $(OSRC)sfml-app
+NAME_D=-o  $(OSRC)sfml-app
 
 
 #####################################################################
@@ -27,11 +27,12 @@ DEPS := $(OBJ:.o=.d)
 
 #####################################################################
 #Compilation Flag
+VAL   = valgrind --leak-check=full
 DEB   = -Wall -Wextra -pedantic
-DGB   = -g -da 
+DGB   = -g -da -O0
 LCK   = -MMD -c 
-COM   = $(CXX)  $(DEB) $(C14) $(LCK)
-BUILD = $(CXX)  $(OBJ) $(OPT) $(OMP)
+COM   = $(CXX) $(DGB)  $(DEB) $(C14) $(LCK)
+BUILD = $(CXX) $(DGB) $(OBJ) $(OPT) $(OMP)
 OPT   = -o3
 
 CDB   = $(CXX) $(DGB) $(DEB) $(C14) $(LCK)
@@ -52,7 +53,10 @@ obj/%.o: src/%.cpp
 #	rm -f $(OBJD)%.d
 	$(COM) $(OMP) -I$(HDRS)  -o  $@   $< $(ER)
 
-sfml-app: 
+sfml-app-val: 
+	$(VAL) ./bin/Debug/sfml-app
+
+sfml-app:
 	gdb -ex run ./bin/Debug/sfml-app
 
 .PHONY: clean

@@ -71,7 +71,7 @@ void EventManager::LoadBindings()
 
             EventType type = EventType(stoi(keyval.substr(start, end-start)));
 
-            std::cout << (unsigned int)type << std::endl;
+        //    std::cout << (unsigned int)type << std::endl;
 
             EventInfo eventInfo;
             if (

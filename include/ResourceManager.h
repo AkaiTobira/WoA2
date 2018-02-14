@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include "Utilities.h"
 #include <iostream>
+#include <map>
 
 
 enum class Direction
@@ -21,8 +22,8 @@ class ResourceManager
 {
 
 private:
-    std::unordered_map<std::string, std::pair<T*, unsigned int> > m_resources;
-    std::unordered_map<std::string, std::string> m_paths;
+    std::map<std::string, std::pair<T*, unsigned int> > m_resources;
+    std::map<std::string, std::string> m_paths;
 
 public:
     ResourceManager(const std::string& l_pathFile)
@@ -52,6 +53,8 @@ public:
         if(res)
         {
             ++res->second;
+
+        //    std::cout << res->second << std::endl;
             return true;
         }
 
@@ -73,15 +76,20 @@ public:
     bool ReleaseResource( const std::string& l_id)
     {
         auto res = Find(l_id);
-        if (!res )
+        if ( !res  )
         {
             return false;
         }
+
+      //  std::cout << " READY TO DELETE " << l_id << " " << res->second <<std::endl;
         --res->second;
-        if( !res->second )
+        if( res->second <= 0 )
         {
+
+       //     std::cout << "TRYING TO UNLOAD " << std::endl;
             Unload(l_id);
         }
+     //   std::cout << "LOOKS FINE  " << std::endl;
         return true;
     }
 
@@ -99,21 +107,36 @@ public:
         return static_cast<Derived*>(this)->Load(l_path);
     }
 
-    std::pair<T*, unsigned int>* Find(const std::string& l_id)
+    std::pair<T*, unsigned int>* Find(const std::string l_id)
     {
+
+    //    for( auto itr  = m_resources.begin(); itr != m_resources.end(); ++itr ){
+    //        std::cout << itr->first << " " << &itr->second << std::endl;
+    //    }
+
+
+    //    std::cout << l_id << std::endl;
         auto itr = m_resources.find(l_id);
         return ( itr != m_resources.end() ? &itr->second : nullptr);
     }
 
     bool Unload(const std::string& l_id)
     {
+     //   std::cout << " UNLOAD :: "  << l_id << " START" << std::endl;
         auto itr = m_resources.find(l_id);
         if ( itr == m_resources.end() )
         {
+
+
+       //     std::cout << " UNLOAD :: "  << l_id << " FAIL" << std::endl;
             return false;
         }
+      //  std::cout << " UNLOAD :: "  << l_id << " CONTINUE" << std::endl;
         delete itr->second.first;
         m_resources.erase(itr);
+
+       // std::cout << " UNLOAD :: "  << l_id << " SUCUCEDE" << std::endl;
+
         return true;
     }
 

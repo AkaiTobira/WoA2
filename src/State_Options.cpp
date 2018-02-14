@@ -15,7 +15,7 @@ void State_Options::OnCreate(){
                  std::cout << "StateMainMenu:: FONT_LOAD_FAIL" << std::endl; 
             #endif
         }
-
+     EventManager * evMgr = m_stateMgr->GetContext()->m_eventManager;
         m_font  = *m_stateMgr->GetContext()->m_fontManager->GetResource("Titania");
        m_text.setFont(m_font);
        m_text.setString(sf::String("OPTIONS:"));
@@ -58,12 +58,17 @@ void State_Options::OnCreate(){
   
        }
 
-       m_stateMgr->SwitchTo(StateType::Options);
+        evMgr-> AddCallback(StateType::Options, "Key_Q", &State_Options::MainMenu, this);
+    //   m_stateMgr->SwitchTo(StateType::Options);
 }
 
-
+void State_Options::MainMenu(EventDetails* l_details __attribute__((unused))){
+    m_stateMgr->SwitchTo(StateType::MainMenu);
+}
 
 void State_Options::OnDestroy(){
+    EventManager * evMgr = m_stateMgr->GetContext()->m_eventManager;
+    evMgr->RemoveCallback(StateType::Options, "Key_Q");
 }
 
 void State_Options::Activate(){

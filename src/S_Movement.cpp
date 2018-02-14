@@ -53,13 +53,13 @@ S_Movement::~S_Movement(){
     std::cout << "S_MOVEMENT :: DESTRUCTOR" << std::endl;
     #endif
 
+    m_gameMap = nullptr;
 
     for( unsigned int i = 0; i<m_mapSize.x; i++ ){
         delete [] m_ReservedTiles[i];
     }
-    delete  m_ReservedTiles;
-
-    m_gameMap = nullptr;
+    delete[] m_ReservedTiles;
+    m_ReservedTiles = nullptr;
 
     #ifdef DEBUGG_RUN
     std::cout << "S_MOVEMENT :: END" << std::endl;
@@ -67,7 +67,7 @@ S_Movement::~S_Movement(){
 }
 
 
-void S_Movement::ReserveTile(C_Position* position, C_Movable* movable){
+void S_Movement::ReserveTile(C_Position* position, C_Movable* movable, float l_dT){
     sf::Vector2u pos     = position->GetUPosition();
 
     sf::Vector2u Nextpos = { 
@@ -182,11 +182,12 @@ void S_Movement::ReserveTile(C_Position* position, C_Movable* movable){
  
     if( m_ReservedTiles[Nextpos.x][Nextpos.y] or !m_gameMap->IsWalkable(Nextpos.x, Nextpos.y) ) {
          position->Pause(); 
+         movable->AddPauseTime(l_dT);
          return;
         }
 
     if( m_gameMap->IsWalkable(Nextpos.x, Nextpos.y)){
-
+        movable->ResetPauseTime();
         movable->SetCurrentReservation( Nextpos );
         m_ReservedTiles[pos.x][pos.y] = false;
         m_ReservedTiles[Nextpos.x][Nextpos.y] = true;
@@ -202,6 +203,35 @@ void S_Movement::ReserveTile(C_Position* position, C_Movable* movable){
         }
     }
 }
+
+void S_Movement::RecalculateAstar( C_Position* position, C_Movable* movable, unsigned int entity){
+    
+     
+    std::set<unsigned int> m_walking[(int)Direction::ENDMARK];
+
+    sf::Vector2f temp = movable->GetFTargetPosition();
+
+    StopEntity(entity);
+    m_ReservedTiles[movable->GetCurrentReservation().x][movable->GetCurrentReservation().y] = false;
+    
+    movable->SetTargetPosition( temp.x, temp.y      );
+    movable->SetStackSteps(     AStar(entity)       );
+
+    Direction dir = movable->DirectionCheck();
+    movable ->StartMove();
+    position->Moving();
+    position->Play();
+    
+    m_walking[(int)dir].insert(entity);
+
+    for( int i = 1; i < (int)Direction::ENDMARK ; i++ ){
+        if( m_walking[i].size() )
+            SendMessage( EntityMessage::Move, i, m_walking[i]);
+    }
+
+}
+
+
 
 void S_Movement::Update(float l_dT){
    
@@ -229,9 +259,6 @@ void S_Movement::Update(float l_dT){
     for(auto &entity : m_entities){
         
         C_Position* position = entities->GetComponent<C_Position>(entity, Component::Position);
-
-
-        
         C_Movable* movable = entities->GetComponent<C_Movable>(entity, Component::Movable);
         
         #ifdef SDR_RUN
@@ -247,10 +274,14 @@ void S_Movement::Update(float l_dT){
            
             CheckDirection( position, movable, entity);  
             MovementStep  ( position, movable, l_dT  );
-            ReserveTile   ( position, movable        );          
+            ReserveTile   ( position, movable, l_dT  );          
 
             if( position->IsPaused() ){ 
-                position->Play() ; 
+                if( movable->NeedRecalculation() ){
+                    RecalculateAstar( position, movable, entity);
+                }else{
+                    position->Play() ; 
+                }
                 continue;
             }
 
@@ -283,19 +314,6 @@ void S_Movement::Update(float l_dT){
         if( m_walking[i].size() )
             SendMessage( EntityMessage::Direction_Changed, i, m_walking[i]);
     }
-  //  std::cout << "S_MOVEMENT :: UPDATE :: END" << std::endl;
-
-  //  for( unsigned int i = 0; i < m_mapSize.x; i++){
-  //      for( unsigned int j =0; j< m_mapSize.y; j++){
-   //        std::cout << !m_gameMap->IsWalkable(j,i) or m_ReservedTiles[j][i];
-    //       m_ReservedTiles[j][i] = false;
-  //  }
-  //      std::cout << std::endl;
-  //  }
-   // std::cout << std::endl;
-
-
-
 
 }
 
@@ -502,8 +520,6 @@ bool S_Movement::onPosition( const sf::Vector2u& l_where, const sf::Vector2f& l_
     return true;
 }
 
-
-
 void S_Movement::CheckDirection(C_Position* position, C_Movable* movable, const EntityId& entity){
     
     #ifdef MOVABLE_DEBBUG
@@ -530,8 +546,6 @@ void S_Movement::CheckDirection(C_Position* position, C_Movable* movable, const 
             toRelease.push_back(position->GetUPosition() );
             toRelease.push_back(position->GetBlockTileOld() );
 
-        //    m_ReservedTiles[movable->GetCurrentReservation().x][movable->GetCurrentReservation().y] = false;
-        //    m_ReservedTiles[movable->GetPrevReservation().x]   [movable->GetPrevReservation().y   ] = false;
             StopEntity(entity);
             movable->GetNextStep();
 
@@ -555,16 +569,12 @@ void S_Movement::CheckDirection(C_Position* position, C_Movable* movable, const 
                 std::cout << "Current Next Direction :: " << movable->GetCheckpoint().x << " | " << movable->GetCheckpoint().y << std::endl; 
             #endif
 
-        //    m_ReservedTiles[movable->GetCurrentReservation().x][movable->GetCurrentReservation().y] = false;
-        //    m_ReservedTiles[movable->GetPrevReservation().x]   [movable->GetPrevReservation().y   ] = false;
-           
             toRelease.push_back(movable->GetCurrentReservation());
             toRelease.push_back(movable->GetPrevReservation());
             toRelease.push_back(position->GetUPosition() );
             toRelease.push_back(position->GetBlockTileOld() );
 
-        //    movable->SetDirection(dir);
-              movable->CalculateSpeed(dir);
+            movable->CalculateSpeed(dir);
             
         }
     }else{
@@ -590,8 +600,6 @@ void S_Movement::MovementStep( C_Position* l_position, C_Movable* l_movable, flo
 const sf::Vector2f& S_Movement::GetTileFriction(
     unsigned int l_elevation __attribute__((unused)) , unsigned int l_x, unsigned int l_y)
     {
-  //   if( l_y >  100000 or l_x > 100000  ) { return m_gameMap->GetTerrianFriction( 0,0 ) ;}
-
         if( l_x > m_gameMap->GetMapSize().x  or l_y > m_gameMap->GetMapSize().y  ){
 
             return m_gameMap->GetTerrianFriction(0,0);
@@ -607,20 +615,24 @@ void S_Movement::StopEntity(const EntityId& l_entity){
     C_Movable* movable = m_systemManager->GetEntityManager()->GetComponent<C_Movable>(l_entity,Component::Movable);
     C_Position* position = m_systemManager->GetEntityManager()->GetComponent<C_Position>(l_entity,Component::Position);
     
-    position->SetPosition((int)position->GetFPosition().x/Tile_Size*Tile_Size +Tile_Size/2,(int)position->GetFPosition().y/Tile_Size*Tile_Size+Tile_Size/2);
-    movable ->SetTargetPosition( position->GetFPosition().x, position->GetFPosition().y);
+    position->SetPosition(
+        position->GetUPosition().x*Tile_Size + Tile_Size/2,
+        position->GetUPosition().y*Tile_Size + Tile_Size/2
+        );
+
+    movable ->SetTargetPosition( 
+        position->GetFPosition().x, 
+        position->GetFPosition().y
+        );
 
     #ifdef SDR_RUN
         std::cout << "Entity " << l_entity << " :: STOP" << std::endl;
     #endif
 
-//    m_ReservedTiles[(int)position->GetFPosition().x/Tile_Size][(int)position->GetFPosition().y/Tile_Size] = false;
-
     position->StopMoving();
     movable ->StopMove();
     movable ->SetDirection(Direction::None);
     movable ->CalculateSpeed();
-
 }
 
 void S_Movement::StopEntity(const EntityId& l_entity,const Axis& l_axis)
@@ -705,7 +717,9 @@ void S_Movement::PauseMove(unsigned int entity){
 }
 
 void S_Movement::TestTargetPosition( ){
+/*
 
+    // TURNED OFF
     std::set<unsigned int> m_walking[(int)Direction::ENDMARK];
 
     for(auto &entity : m_entities){
@@ -757,10 +771,11 @@ void S_Movement::TestTargetPosition( ){
     #ifdef SDR_RUN
         std::cout << "Entity " << l_entity << " :: Postion Set to :: " << l_x << " " << l_y  << std::endl;
     #endif
+    */
 }
 
 void S_Movement::CallAStarAgain(unsigned int entity __attribute__((unused))){
-
+    //NOT WORKING
 
 
   //  C_Movable* movable = m_systemManager->GetEntityManager()->GetComponent<C_Movable>(entity,Component::Movable);
@@ -776,38 +791,32 @@ void S_Movement::CallAStarAgain(unsigned int entity __attribute__((unused))){
 void S_Movement::SetTargetPosition( float l_x, float l_y){
     
     std::set<unsigned int> m_walking[(int)Direction::ENDMARK];
-
-    // auto pos = position->GetFPosition();
-
-    //C_Movable* movable;
     
     #pragma omp parallel for
     for(unsigned int i = 0; i < m_entities.size(); i++){
     //    std::cout << "teraz dziala watek nr: " << omp_get_thread_num() << "\n";
-    auto &entity = m_entities[i];
-    C_Controller* contr = m_systemManager->GetEntityManager()->GetComponent<C_Controller>(entity,Component::Controller);
-    if(! contr->IsActive()){ continue; }       
-    C_Position* position = m_systemManager->GetEntityManager()->GetComponent<C_Position>(entity,Component::Position);
-    C_Movable* movable = m_systemManager->GetEntityManager()->GetComponent<C_Movable>(entity,Component::Movable);
-    
+        auto &entity = m_entities[i];
+        C_Controller* contr = m_systemManager->GetEntityManager()->GetComponent<C_Controller>(entity,Component::Controller);
+        if(! contr->IsActive()){ continue; }       
+        C_Position* position = m_systemManager->GetEntityManager()->GetComponent<C_Position>(entity,Component::Position);
+        C_Movable* movable = m_systemManager->GetEntityManager()->GetComponent<C_Movable>(entity,Component::Movable);
+        
 
-    StopEntity(entity);
-    m_ReservedTiles[movable->GetCurrentReservation().x][movable->GetCurrentReservation().y] = false;
-    
+        StopEntity(entity);
+        m_ReservedTiles[movable->GetCurrentReservation().x][movable->GetCurrentReservation().y] = false;
+        
+        movable->SetTargetPosition( l_x, l_y      );
+        movable->SetStackSteps(     AStar(entity) );
 
-    movable->SetTargetPosition( l_x, l_y      );
-    movable->SetStackSteps(     AStar(entity) );
-
-    Direction dir = movable->DirectionCheck();
-    movable ->StartMove();
-    position->Moving();
-    position->Play();
+        Direction dir = movable->DirectionCheck();
+        movable ->StartMove();
+        position->Moving();
+        position->Play();
     
-    #pragma omp critical 
-    {
-        m_walking[(int)dir].insert(entity);
-    }
-   // position->SetTargetPosition( l_x , l_y);
+        #pragma omp critical 
+        {
+            m_walking[(int)dir].insert(entity);
+        }
 
     }
 
@@ -845,9 +854,7 @@ void S_Movement::SetMap(Map* l_gameMap){
     #endif
     
     m_gameMap = l_gameMap; 
-
     m_mapSize = l_gameMap->GetMapSize();
-
     m_ReservedTiles = new bool*[m_mapSize.x];
 
     for( unsigned int i = 0; i < m_mapSize.x; i++){
@@ -861,6 +868,89 @@ void S_Movement::SetMap(Map* l_gameMap){
     std::cout << "S_MOVEMENT :: SETMAP :: DONE" << std::endl;
     #endif
 }
+
+
+void S_Movement::MoveAsFormation( std::set<unsigned int>& l_walkers, unsigned int l_centerSoldier, sf::Vector2f l_targ ){
+
+    std::set<unsigned int> m_walking[(int)Direction::ENDMARK];
+
+    sf::Vector2u LU = { 999999999,999999999 };
+    sf::Vector2u RD = { 0,0 };
+
+    EntityManager* entities = m_systemManager->GetEntityManager();
+
+     for(auto &entity : l_walkers){
+            C_Position* position = entities->GetComponent<C_Position>(entity, Component::Position);   
+            C_Movable* movable = entities->GetComponent<C_Movable>(entity, Component::Movable);
+
+            m_gameMap->UnBlockTile( position->GetBlockTile().x, position->GetBlockTile().y);
+
+                if( LU.x > position->GetUPosition().x  or LU.y > position->GetUPosition().y ){
+                    LU = position->GetUPosition();
+                }
+
+                if( RD.x < position->GetUPosition().x  or RD.y < position->GetUPosition().y ){
+                    RD = position->GetUPosition();
+                }
+
+     }
+
+
+    sf::Vector2u Center = { (LU.x+RD.x)/2, (LU.y+RD.y)/2 };
+    sf::Vector2i Move = { static_cast<int>((l_targ.x-16.0)/32.0 - Center.x), static_cast<int>((l_targ.y-16.0)/32.0 - Center.y)   };
+
+    for(auto entity : l_walkers){
+        
+        C_Position* position = entities->GetComponent<C_Position>(entity, Component::Position);        
+        C_Movable* movable = entities->GetComponent<C_Movable>(entity, Component::Movable);
+
+        StopEntity(entity);
+        m_ReservedTiles[movable->GetCurrentReservation().x][movable->GetCurrentReservation().y] = false;
+        
+
+        float tx = position->GetFPosition().x + Move.x*32;
+        float ty = position->GetFPosition().y + Move.y*32;
+
+        if( tx < 0 ) tx = 16;
+        if( ty < 0 ) ty = 16;
+
+        if( tx > m_mapSize.x*32 )  tx = m_mapSize.x*32-32;
+        if( ty > m_mapSize.y*32 )  ty = m_mapSize.y*32-32;
+
+
+        movable->SetTargetPosition( tx, ty);
+        movable->SetStackSteps(     AStar(entity) );
+
+        Direction dir = movable->DirectionCheck();
+        movable ->StartMove();
+        position->Moving();
+        position->Play();
+        
+
+        m_walking[(int)dir].insert(entity);
+
+        }
+
+
+    for(auto &entity : l_walkers){
+        C_Position* position = entities->GetComponent<C_Position>(entity, Component::Position);   
+        m_gameMap->BlockTile( position->GetBlockTile().x, position->GetBlockTile().y);
+    }
+
+
+    for( int i = 1; i < (int)Direction::ENDMARK ; i++ ){
+            if( m_walking[i].size() )
+            SendMessage( EntityMessage::Move, i, m_walking[i]);
+        }
+
+            #ifdef SDR_RUN
+                std::cout << "Entity " << entity << " :: MoveBy :: "<< movable->GetVelocity().x<< " "<< movable->GetVelocity().y << std::endl;
+            #endif
+
+
+
+}
+
 
 std::stack<SE> S_Movement::AStar(unsigned int& l_entity){
     C_Position* position = m_systemManager->GetEntityManager()->GetComponent<C_Position>(l_entity,Component::Position);
@@ -877,36 +967,84 @@ std::stack<SE> S_Movement::AStar(unsigned int& l_entity){
         (unsigned int)movable->GetFTargetPosition().y/Tile_Size
     };    
 
-    while( !m_gameMap->IsWalkable(targ.x, targ.y )){
-
-        if( pos == targ ) { break; }
 
 
-        sf::Vector2u xRange = {
+    sf::Vector2u xRange = {
             ( targ.x > 0 ) ? targ.x-1 : targ.x,
             ( targ.x < m_mapSize.x-1 ) ? targ.x+1 :targ.x
          };
 
-         sf::Vector2u yRange = {
+    sf::Vector2u yRange = {
             ( targ.y > 0 ) ? targ.y-1 : targ.y,
             ( targ.y < m_mapSize.y-1 ) ? targ.y+1 : targ.y
+         };
+
+    if(!m_gameMap->IsWalkable(targ.x, targ.y )){
+
+    for( unsigned int i = xRange.x; i <= xRange.y; i++ ){
+            for( unsigned int j = yRange.x; j<= yRange.y; j++){
+
+                float t1 = static_cast<float>(i) - static_cast<float>(pos.x) ;
+                float t2 = static_cast<float>(j) - static_cast<float>(pos.y) ;
+                    
+                float sq = sqrt((t1*t1) + (t2*t2));
+
+                if( sq <= 1.3000 ){
+                    std::stack<SE> road = std::stack<SE>(); 
+
+                    road.push(SE( Direction::None, pos.x, pos.y ));
+
+                    return  road;
+                }
+
+        }
+    }
+
+    }
+
+    int rande = 1;
+    int counter = 0;
+    int prevCounter =0;
+    while( !m_gameMap->IsWalkable(targ.x, targ.y )){
+        prevCounter = 0;
+        counter = 0;
+        if( pos == targ ) { break; }
+
+        xRange = {
+            ( targ.x > 0 ) ? targ.x-rande : targ.x,
+            ( targ.x < m_mapSize.x-rande  ) ? targ.x+rande  :targ.x
+         };
+
+         yRange = {
+            ( targ.y > 0 ) ? targ.y-rande  : targ.y,
+            ( targ.y < m_mapSize.y-rande  ) ? targ.y+rande  : targ.y
          };
 
          float best = 99999;
          for( unsigned int i = xRange.x; i <= xRange.y; i++ ){
             for( unsigned int j = yRange.x; j<= yRange.y; j++){
-                float t1 = (float)i - (float)pos.x ;
-                float t2 = (float)j - (float)pos.y ;
-                
-                float sq = sqrt((t1*t1) + (t2*t2));
-                if( best > sq ){
-                    targ.x = i;
-                    targ.y = j;
-                    best = sq; 
+                prevCounter ++;
 
-                } 
+                if( m_gameMap->IsWalkable(i,j) ){
+
+                    float t1 = static_cast<float>(i) - static_cast<float>(pos.x) ;
+                    float t2 = static_cast<float>(j) - static_cast<float>(pos.y) ;
+                    
+                    float sq = sqrt((t1*t1) + (t2*t2));
+                    if( best > sq ){
+                        targ.x = i;
+                        targ.y = j;
+                        best = sq; 
+
+                    }
+                }else{
+                    counter++;
+                }
             }
         }
+
+        if( counter == prevCounter and !m_gameMap->IsWalkable(targ.x,targ.y) ) { break;}
+
     }
 
    movable->SetTargetPosition( targ.x*Tile_Size + Tile_Size/2 , targ.y*Tile_Size + Tile_Size/2);
@@ -1020,7 +1158,7 @@ std::stack<SE> S_Movement::AStar(unsigned int& l_entity){
             {for( unsigned int j = yRange.x; j<= yRange.y; j++){
 
 
-                if(!m_gameMap->IsWalkable(i, j)) { continue; }
+                if(!m_gameMap->IsWalkable(i, j) and ! m_ReservedTiles[i][j]) { continue; }
 
                 float distanceX = std::abs(static_cast<int>(i - targ.x));
                 float distanceY = std::abs(static_cast<int>(j - targ.y));

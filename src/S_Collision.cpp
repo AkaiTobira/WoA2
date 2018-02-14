@@ -34,8 +34,9 @@ void S_Collision::SetMap(Map* l_map){
     m_setsSizes = { static_cast<unsigned int>(((mapSize.x*32)/SQUARE_SIZE)+2) , static_cast<unsigned int>(((mapSize.y*32)/SQUARE_SIZE)+2) };
 
     m_squares = new std::set<unsigned int>*[m_setsSizes.y];
-    for( unsigned int i = 0 ; i < m_setsSizes.y; i++)
+    for( unsigned int i = 0 ; i < m_setsSizes.y; i++){
         m_squares[i] = new std::set<unsigned int>[m_setsSizes.x];
+    }
 }
 
 void S_Collision::HandleEvent(const EntityId& l_entity

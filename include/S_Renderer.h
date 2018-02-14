@@ -27,6 +27,9 @@ private:
     void SortDrawables();
 
     sf::Font m_font;
+    sf::Texture m_targetTexture;
+    sf::Sprite m_targetSprite;
+    bool m_once;
 };
 
 

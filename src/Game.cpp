@@ -49,7 +49,7 @@ void Game::Update()
     GUI_Event guiEvent;
     while (m_context.m_guiManager->PollEvent(guiEvent)){
 
-        std::cout << (unsigned int) guiEvent.m_type << std::endl;
+    //    std::cout << (unsigned int) guiEvent.m_type << std::endl;
 
         m_window.GetEventManager()->HandleEvent(guiEvent);
     }
@@ -67,6 +67,8 @@ src/S_Movement.cpp:631:0: warning: ignoring #pragma omp parallel [-Wunknown-prag
 src/S_Movement.cpp:659:0: warning: ignoring #pragma omp critical [-Wunknown-pragmas]
      #pragma omp critical
 */
+
+
 
 Window * Game::GetWindow()
 {

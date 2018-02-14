@@ -45,7 +45,10 @@ void S_Control::ReleaseUnit(const EntityId& l_entity){
     contr->SetActive(false);
 }
 
-bool S_Control::FindUnit( sf::Vector2f & l_x, sf::Vector2f & l_y ){
+std::set<unsigned int> S_Control::FindUnit( sf::Vector2f & l_x, sf::Vector2f & l_y ){
+
+    std::set<unsigned int> activeUnits;
+
     int cout = 0;
 
 
@@ -127,11 +130,17 @@ bool S_Control::FindUnit( sf::Vector2f & l_x, sf::Vector2f & l_y ){
                 
             }
             contr->SetActive(true);
+            activeUnits.insert(entity);
         }
     
         }
     
-        return (bool)cout;
+        for( auto itr = activeUnits.begin(); itr != activeUnits.end(); itr++){
+            std::cout << *itr << std::endl;
+        }
+
+
+        return activeUnits;
 
 }
 

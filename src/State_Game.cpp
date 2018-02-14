@@ -206,6 +206,11 @@ void State_Game::StopEntity(EventDetails* l_details __attribute__((unused))){
 
 void State_Game::MoveEntity(EventDetails* l_details __attribute__((unused))){
 
+
+    if( m_activeUnits.empty() ){
+        return;
+    }
+
     auto pos = m_context->m_eventManager->GetMousePos(
 
         m_context->m_wind->GetRenderWindow()
@@ -229,9 +234,9 @@ void State_Game::MoveEntity(EventDetails* l_details __attribute__((unused))){
     cor_x = (int)(cor_x/Tile_Size) * Tile_Size + Tile_Size/2 ;
     cor_y = (int)(cor_y/Tile_Size) * Tile_Size + Tile_Size/2 ;
 
-    m_stateMgr->GetContext()->m_systemManager->GetSystem<S_Movement>(System::Movement)->SetTargetPosition(cor_x, cor_y);
+    //m_stateMgr->GetContext()->m_systemManager->GetSystem<S_Movement>(System::Movement)->SetTargetPosition(cor_x, cor_y);
     
-
+     m_stateMgr->GetContext()->m_systemManager->GetSystem<S_Movement>(System::Movement)->MoveAsFormation(m_activeUnits, 0, sf::Vector2f(cor_x, cor_y));
 
 }
 
@@ -305,7 +310,7 @@ void State_Game::ChoseAll(EventDetails* l_details __attribute__((unused))){
     };
     sf::Vector2f p = {0,0};
 
-    m_stateMgr->GetContext()->m_systemManager->GetSystem<S_Control>(System::Control)->FindUnit( p, t );
+    m_activeUnits = m_stateMgr->GetContext()->m_systemManager->GetSystem<S_Control>(System::Control)->FindUnit( p, t );
 
 }
 
@@ -367,7 +372,6 @@ void State_Game::SpawnEntity(EventDetails* l_details __attribute__((unused))){
             
 }
 
-
 void State_Game::SpawnHorse(EventDetails* l_details __attribute__((unused))){
     auto pos = m_context->m_eventManager->GetMousePos(
         
@@ -399,8 +403,6 @@ void State_Game::SpawnHorse(EventDetails* l_details __attribute__((unused))){
         newEntity);
             
 }
-
-
 
 void State_Game::Update(const sf::Time& l_time){
 //m_context = m_stateMgr->GetContext();
@@ -453,7 +455,7 @@ if( m_leftClickDown ){
      };
 
         m_stateMgr->GetContext()->m_systemManager->GetSystem<S_Control>(System::Control)->ReleaseUnits( );
-        m_stateMgr->GetContext()->m_systemManager->GetSystem<S_Control>(System::Control)->FindUnit(m_posDown, m_posRelease);
+        m_activeUnits = m_stateMgr->GetContext()->m_systemManager->GetSystem<S_Control>(System::Control)->FindUnit(m_posDown, m_posRelease);
 
     }
 }

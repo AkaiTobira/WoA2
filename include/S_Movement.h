@@ -33,6 +33,7 @@ public:
         const Direction& l_dir
     );
 
+    void MoveAsFormation( std::set<unsigned int>& l_walkers, unsigned int l_centerSoldier, sf::Vector2f l_targ );
     void CallAStarAgain(unsigned int reciver);
 
     bool RemoveEntity(const EntityId& l_entity);
@@ -55,9 +56,9 @@ private:
     void SetDirection(const EntityId& l_entity, const Direction& l_dir);
     const sf::Vector2f& GetTileFriction(unsigned int l_elevation, unsigned int l_x, unsigned int l_y);
     void CheckDirection(C_Position* position, C_Movable* movable, const EntityId& entity);
-    void ReserveTile(C_Position* position, C_Movable* movable);
+    void ReserveTile(C_Position* position, C_Movable* movable, float l_dT);
     void MovementStep( C_Position* l_position, C_Movable* l_movable, float l_dT);
-
+    void RecalculateAstar( C_Position* l_position, C_Movable* l_movable, unsigned int entity);
     bool onPosition( const sf::Vector2u& l_where,const sf::Vector2f& l_isNow, const sf::Vector2f& offset);
 
     sf::Vector2u m_mapSize2;
